@@ -1430,4 +1430,282 @@ testResolverAlias = async function(){
 })();
 </script>
 
+
+<!-- NODO · ADMI · Config de oficina (proxy/promo/dominio/aliases) — portado de admi.html V20 (autocontenido: inyecta su nav+sección) -->
+<script>
+/* ============================================================
+   NODO · ADMI · Wizard "Alta de oficina"
+   Crea una oficina nueva sin SQL: ruta pública del portal + aliases de Chunior.
+   Reusa admin_general_guardar_ruta / admin_general_guardar_alias (con fallback directo).
+   ============================================================ */
+(function(){
+  function $id(x){ return document.getElementById(x); }
+  function gv(x){ return ($id(x)?.value||"").trim(); }
+  function randomCode(){ return "rt-"+Math.random().toString(36).slice(2,7); }
+
+  function ensureSectionOficina(){
+    if($id("section-altaofi")) return;
+    const nav=document.querySelector(".nav");
+    if(nav && !document.querySelector('[data-section="altaofi"]')){
+      nav.insertAdjacentHTML("beforeend",`<button class="navBtn" data-section="altaofi" onclick="showSection('altaofi')">🏢 Oficinas <span class="badge">todo en uno</span></button>`);
+    }
+    const html=`<section id="section-altaofi" class="section"><div class="card"><div class="card-h"><h3>🏢 Alta de oficina nueva</h3></div><div class="card-b">
+      <div class="notice">Crea una oficina nueva <b>sin SQL</b>: ruta del portal + alias de Chunior. Cuando el operador entra por Chunior con su puesto, el panel resuelve solo a esta oficina.</div>
+      <div class="grid2">
+        <div class="row"><label>Código de oficina (oficina_id)</label><input id="ofi_oficina_id" placeholder="Ej: NUEVAPLATA"></div>
+        <div class="row"><label>PC / puesto (pc_codigo)</label><input id="ofi_pc_codigo" placeholder="Ej: P6"></div>
+        <div class="row"><label>Nombre público</label><input id="ofi_nombre" placeholder="Ej: Canal 6"></div>
+        <div class="row"><label>Ruta pública (?r=)</label><input id="ofi_public_code" placeholder="rt-xxxxx (vacío = automática)"></div>
+        <div class="row"><label>Subdominio (producción, ej: p6)</label><input id="ofi_subdominio" placeholder="p6 → p6.tudominio.com"></div>
+        <div class="row"><label>WhatsApp (opcional)</label><input id="ofi_whatsapp" placeholder="549..."></div>
+        <div class="row"><label>Link plataforma (opcional)</label><input id="ofi_link" placeholder="https://www.bet-300.pw/"></div>
+      </div>
+      <div class="row"><label>Nombres de puesto en Chunior (separados por coma o renglón)</label><textarea id="ofi_aliases" rows="3" placeholder="Ej: JUANCHO, JUANCHO EN USO, JGRAL"></textarea></div>
+      <div class="grid2">
+        <div class="row"><label>Usuario de agente (Casinodrex)</label><input id="ofi_agente_user" autocomplete="off" placeholder="usuario del agente"></div>
+        <div class="row"><label>Clave de agente</label><input id="ofi_agente_pass" type="password" autocomplete="new-password" placeholder="clave del agente (queda oculta)"></div>
+      </div>
+      <div class="notice" style="margin-top:6px">🔒 Las credenciales de agente quedan blindadas: el operador no las ve ni las escribe — solo se auto-loguea al backoffice.</div>
+      <div class="row"><label>🎁 Promo de primer ingreso</label><select id="ofi_promo"><option value="0">Desactivada</option><option value="1">Activada (bono al primer ingreso)</option></select></div>
+      <div class="row"><label>🌐 Proxy de la oficina</label><select id="ofi_proxy_enabled"><option value="0">Sin proxy (salida directa)</option><option value="1">Usar proxy</option></select></div>
+      <div class="grid2">
+        <div class="row"><label>Proxy host</label><input id="ofi_proxy_host" autocomplete="off" placeholder="ej: 91.212.103.195"></div>
+        <div class="row"><label>Proxy puerto</label><input id="ofi_proxy_port" autocomplete="off" placeholder="ej: 1337"></div>
+        <div class="row"><label>Protocolo</label><select id="ofi_proxy_protocol"><option value="http">http</option><option value="socks5">socks5</option></select></div>
+        <div class="row"><label>Bypass</label><input id="ofi_proxy_bypass" autocomplete="off" placeholder="&lt;local&gt;"></div>
+        <div class="row"><label>Proxy usuario</label><input id="ofi_proxy_user" autocomplete="off" placeholder="usuario del proxy"></div>
+        <div class="row"><label>Proxy clave</label><input id="ofi_proxy_pass" type="password" autocomplete="new-password" placeholder="clave del proxy 🔒"></div>
+      </div>
+      <div class="notice" style="margin-top:6px">🌐 El proxy se aplica en la app del operador al loguearse en Chunior. La clave queda blindada (el operador no la ve).</div>
+      <div class="actions"><button class="primary" id="ofi_btn" onclick="oficinaWizardCrear()">Crear oficina</button></div>
+      <div id="ofi_resultado" style="margin-top:12px"></div>
+    </div></div>
+    <div class="card"><div class="card-h"><h3>Oficinas existentes</h3><button class="blue small" onclick="oficinaListaCargar()">Actualizar</button></div><div class="card-b"><div id="ofi_lista"><div class="notice">Abrí esta sección logueado para ver las oficinas y sus puestos.</div></div></div></div>
+    </section>`;
+    const ref=$id("section-config")||$id("section-historial");
+    if(ref) ref.insertAdjacentHTML("beforebegin", html);
+    else document.querySelector("main")?.insertAdjacentHTML("beforeend", html);
+  }
+
+  window.oficinaWizardCrear=async function(){
+    const out=$id("ofi_resultado");
+    const oficina_id=gv("ofi_oficina_id").toUpperCase();
+    const pc=(typeof normPc==="function"?normPc(gv("ofi_pc_codigo")):gv("ofi_pc_codigo").toUpperCase());
+    const nombre=gv("ofi_nombre")||pc;
+    const code=gv("ofi_public_code")||randomCode();
+    if(!oficina_id||!pc){ out.innerHTML='<div class="notice" style="border-color:rgba(239,68,68,.7);color:#fca5a5">oficina_id y pc_codigo son obligatorios.</div>'; return; }
+    const tok=(typeof requireAdminToken==="function")?requireAdminToken():null;
+    const btn=$id("ofi_btn"); if(btn){btn.disabled=true;btn.textContent="Creando...";}
+    try{
+      // 1) Ruta pública del portal
+      await rpcRowsSafe("admin_general_guardar_ruta",{p_session_token:tok,p_id:null,p_pc_codigo:pc,p_public_code:code,p_nombre_publico:nombre,p_link_plataforma:gv("ofi_link"),p_whatsapp_numero:gv("ofi_whatsapp"),p_activo:true},async()=>{
+        const r=await supabaseClient.from("landing_rutas_publicas").insert([{pc_codigo:pc,public_code:code,nombre_publico:nombre,link_plataforma:gv("ofi_link"),whatsapp_numero:gv("ofi_whatsapp"),activo:true}]);
+        if(r.error) throw r.error; return [];
+      });
+      // 1b) Subdominio de producción (opcional). Mirar .error (la RPC no tira excepción).
+      const _sub=gv("ofi_subdominio");
+      if(_sub){
+        let _subErr=null;
+        try{ const _r=await supabaseClient.rpc("admin_general_set_subdominio",{p_session_token:tok,p_pc_codigo:pc,p_subdominio:_sub,p_host:""}); if(_r&&_r.error) _subErr=_r.error; }catch(_e){ _subErr=_e; }
+        if(_subErr){ console.warn("subdominio",_subErr); toast("⚠️ Oficina creada, pero el SUBDOMINIO no se guardó: "+((_subErr&&_subErr.message)||_subErr),"err"); }
+      }
+      // 2) Aliases: pc_codigo + oficina_id + cada nombre de puesto de Chunior
+      const nombres=gv("ofi_aliases").split(/[\n,]+/).map(s=>s.trim()).filter(Boolean);
+      const aliasSet=[...new Set([pc, oficina_id, ...nombres].map(s=>s.toUpperCase()))];
+      let aok=0, aerr=0;
+      for(const a of aliasSet){
+        try{
+          await rpcRowsSafe("admin_general_guardar_alias",{p_session_token:tok,p_id:null,p_alias_codigo:a,p_oficina_id:oficina_id,p_pc_codigo_compat:pc,p_activa:true,p_observaciones:"Alta de oficina (wizard)"},async()=>{
+            const r=await supabaseClient.from("nodo_oficina_aliases").insert([{alias_codigo:a,oficina_id:oficina_id,pc_codigo_compat:pc,activa:true,observaciones:"Alta de oficina (wizard)"}]);
+            if(r.error) throw r.error; return [];
+          });
+          aok++;
+        }catch(e){ aerr++; console.warn("alias",a,e.message||e); }
+      }
+      // Credenciales de agente (blindadas) si se cargaron
+      const _au=gv("ofi_agente_user"), _ap=gv("ofi_agente_pass");
+      if(_au||_ap){ try{ await supabaseClient.rpc("admin_set_agente_credenciales",{p_session_token:tok,p_pc_codigo:pc,p_usuario:_au,p_clave:_ap}); }catch(_e){ console.warn("agente cred",_e); } }
+      // Proxy de la oficina (opcional, blindado)
+      try{ await supabaseClient.rpc("admin_set_proxy",{p_session_token:tok,p_pc_codigo:pc,p_enabled:(gv("ofi_proxy_enabled")==="1"),p_protocol:gv("ofi_proxy_protocol")||"http",p_host:gv("ofi_proxy_host"),p_port:gv("ofi_proxy_port"),p_username:gv("ofi_proxy_user"),p_password:gv("ofi_proxy_pass"),p_bypass:gv("ofi_proxy_bypass")}); }catch(_e){ console.warn("proxy",_e); }
+      // Promo de primer ingreso (on/off)
+      try{ await supabaseClient.rpc("admin_general_set_promo",{p_session_token:tok,p_pc_codigo:pc,p_activa:(gv("ofi_promo")==="1")}); }catch(_e){ console.warn("promo",_e); }
+      const portalUrl=(gv("ofi_link")||"https://www.bet-300.pw/")+"?r="+code;
+      out.innerHTML=`<div class="item"><strong>✅ Oficina creada</strong><span>Oficina <b>${oficina_id}</b> · PC <b>${pc}</b> · ${aok} alias${aerr?(" ("+aerr+" con error)"):""}</span><span>Link del portal: <code>${portalUrl}</code></span><span>El operador entra por Chunior con su puesto y el panel resuelve solo a <b>${pc}</b>. Cargá las billeteras sincronizando desde el panel.</span></div>`;
+      if(typeof toast==="function") toast("Oficina creada","okb");
+      try{ if(typeof fillPcSelects==="function") fillPcSelects(); }catch(_e){}
+      try{ await oficinaListaCargar(); }catch(_e){}
+    }catch(e){
+      out.innerHTML=`<div class="notice" style="border-color:rgba(239,68,68,.7);color:#fca5a5">Error: ${(e.message||e)}</div>`;
+      if(typeof toast==="function") toast("Error creando oficina: "+(e.message||e),"err");
+    }finally{ if(btn){btn.disabled=false;btn.textContent="Crear oficina";} }
+  };
+
+  function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c];}); }
+  window.oficinaListaCargar=async function(){
+    try{ if(typeof loadAliasesOficina==="function") await loadAliasesOficina(false); }catch(_e){}
+    // Rutas con TODAS las columnas (subdominio, host, promo_activa) — el loader normal usa columnas fijas.
+    const tok=(typeof requireAdminToken==="function")?requireAdminToken():null;
+    try{
+      const {data,error}=await supabaseClient.rpc("admin_get_rutas_full",{p_session_token:tok});
+      if(!error) window._rutasFull = data||[];
+      else { if(typeof loadRutasPublicas==="function") await loadRutasPublicas(false); }
+    }catch(_e){ try{ if(typeof loadRutasPublicas==="function") await loadRutasPublicas(false); }catch(__e){} }
+    // Estado real de proxy por oficina (para mostrarlo/pre-cargarlo, sin ir a Supabase a mano).
+    try{ const pr=await supabaseClient.rpc("admin_get_proxies",{p_session_token:tok}); window._proxiesFull=(!pr.error && Array.isArray(pr.data))?pr.data:[]; }catch(_e){ window._proxiesFull=window._proxiesFull||[]; }
+    // Estado de bases por oficina: creds de agente cargadas + CSV de agentes (conteo/última import).
+    try{ const bs=await supabaseClient.rpc("admin_get_bases",{p_session_token:tok}); window._basesFull=(!bs.error && Array.isArray(bs.data))?bs.data:[]; }catch(_e){ window._basesFull=window._basesFull||[]; }
+    oficinaListaRender();
+  };
+  window.oficinaListaRender=function(){
+    const cont=$id("ofi_lista"); if(!cont) return;
+    const rutas=(window._rutasFull&&window._rutasFull.length)?window._rutasFull:((typeof rutasPublicas!=="undefined"&&rutasPublicas)?rutasPublicas:(window.rutasPublicas||[]));
+    const aliases=(typeof aliasesOficina!=="undefined"&&aliasesOficina)?aliasesOficina:(window.aliasesOficina||[]);
+    const grupos={};
+    aliases.forEach(function(a){ const pc=String(a.pc_codigo_compat||"").toUpperCase(); if(!pc)return; if(!grupos[pc])grupos[pc]={pc:pc,oficina_id:a.oficina_id||pc,aliases:[]}; grupos[pc].aliases.push(a); });
+    rutas.forEach(function(r){ const pc=String(r.pc_codigo||"").toUpperCase(); if(!pc)return; if(!grupos[pc])grupos[pc]={pc:pc,oficina_id:pc,aliases:[]}; grupos[pc].ruta=r; });
+    const keys=Object.keys(grupos).sort();
+    if(!keys.length){ cont.innerHTML='<div class="notice">No hay oficinas configuradas todavía.</div>'; return; }
+    cont.innerHTML=keys.map(function(pc){
+      const g=grupos[pc], r=g.ruta;
+      const chips=g.aliases.map(function(a){ return `<span style="display:inline-flex;align-items:center;gap:4px;background:#222a3a;border-radius:6px;padding:3px 8px;margin:2px;font-size:12px">${esc(a.alias_codigo)} <a href="javascript:void 0" onclick="oficinaQuitarPuesto(${a.id})" title="Quitar puesto" style="color:#fca5a5;text-decoration:none">✕</a></span>`; }).join("");
+      const ruta=r?`<code>${esc(r.public_code)}</code>${r.nombre_publico?(" · "+esc(r.nombre_publico)):""}`:'<span style="color:#fca5a5">sin ruta</span>';
+      const sub=r&&r.subdominio?esc(String(r.subdominio)):"";
+      const pcode=r?esc(r.public_code):"";
+      const promoOn = !!(r && r.promo_activa);
+      // Estado real del proxy (de admin_get_proxies) para pre-cargar y mostrar.
+      const _px=(window._proxiesFull||[]).find(function(x){return String(x.pc_codigo||"").toUpperCase()===String(pc).toUpperCase();});
+      const pxOn=!!(_px && _px.enabled && _px.host);
+      const pxHost=_px?esc(String(_px.host||"")):"", pxPort=_px?esc(String(_px.port||"")):"", pxUser=_px?esc(String(_px.username||"")):"", pxProto=(_px&&_px.protocol)?String(_px.protocol):"http";
+      const nPuestos=g.aliases.length;
+      // Estado de bases (admin_get_bases): creds de agente + CSV de agentes importado.
+      const _bs=(window._basesFull||[]).find(function(x){return String(x.pc_codigo||"").toUpperCase()===String(pc).toUpperCase();});
+      const agenteOk=!!(_bs && _bs.agente_cargado);
+      const csvAgN=_bs?Number(_bs.csv_agentes_n||0):0;
+      const csvAgOn=csvAgN>0;
+      const csvAgFecha=(_bs&&_bs.csv_agentes_ultima)?String(_bs.csv_agentes_ultima).slice(0,10):"";
+      const csvWaN=_bs?Number(_bs.csv_whaticket_n||0):0;
+      const csvWaOn=csvWaN>0;
+      const _bdg=function(on,txt){return '<span style="display:inline-block;font-size:11px;font-weight:700;border-radius:999px;padding:3px 9px;margin:2px 2px 0 0;'+(on?'background:rgba(34,197,94,.16);color:#4ade80;border:1px solid rgba(34,197,94,.4)':'background:rgba(148,163,184,.12);color:#94a3b8;border:1px solid rgba(148,163,184,.28)')+'">'+txt+'</span>';};
+      const badges = _bdg(pxOn,'🌐 Proxy '+(pxOn?'ON':'OFF')) + _bdg(!!sub,'🔗 Subdom '+(sub||'—')) + _bdg(promoOn,'🎁 Promo '+(promoOn?'ON':'OFF')) + _bdg(nPuestos>0,'👥 Puestos '+nPuestos) + _bdg(!!(r&&r.public_code),'🔓 Ruta '+((r&&r.public_code)?'OK':'—')) + _bdg(agenteOk,'🔑 Agente '+(agenteOk?'✓':'✗')) + _bdg(csvAgOn,'📋 CSV agentes '+(csvAgOn?('✓ '+csvAgN.toLocaleString()+(csvAgFecha?(' · '+csvAgFecha):'')):'✗')) + _bdg(csvWaOn,'💬 CSV whaticket '+(csvWaOn?('✓ '+csvWaN.toLocaleString()):'✗'));
+      return `<div class="item" style="display:block;margin-bottom:10px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><strong>${esc(g.oficina_id)} · PC ${esc(g.pc)}</strong><button class="red small" onclick="oficinaEliminar('${esc(g.pc)}')">Eliminar oficina</button></div>
+        <div style="margin:6px 0">${badges}</div>
+        <div style="margin:6px 0;font-size:12px;color:#9aa">Portal: ${ruta}${(pcode||sub)?` <button class="small" onclick="oficinaCopiarLink('${pcode}','${sub}')">📋 Copiar link</button>`:""}</div>
+        <div class="row" style="display:flex;gap:6px;align-items:center;margin:6px 0"><input id="ofi_sub_${esc(g.pc)}" value="${sub}" placeholder="subdominio (ej: p6)" style="flex:1"><button class="blue small" onclick="oficinaGuardarSubdominio('${esc(g.pc)}')">Guardar subdom.</button></div>
+        <div class="row" style="display:flex;gap:6px;align-items:center;margin:6px 0;flex-wrap:wrap"><input id="ofi_wpp_${esc(g.pc)}" value="${esc((r&&r.whatsapp_numero)||'')}" placeholder="WhatsApp (549...)" style="flex:1;min-width:130px"><input id="ofi_link_${esc(g.pc)}" value="${esc((r&&r.link_plataforma)||'')}" placeholder="Link plataforma" style="flex:1;min-width:150px"><button class="blue small" onclick="oficinaGuardarRuta('${esc(g.pc)}')">Guardar ruta</button></div>
+        <div class="row" style="display:flex;gap:6px;align-items:center;margin:6px 0"><input id="ofi_au_${esc(g.pc)}" autocomplete="off" placeholder="${agenteOk?'agente cargado ✓ (reescribí para cambiar)':'usuario agente'}" style="flex:1"><input id="ofi_ap_${esc(g.pc)}" type="password" autocomplete="new-password" placeholder="${agenteOk?'clave guardada 🔒':'clave agente 🔒'}" style="flex:1"><button class="blue small" onclick="oficinaGuardarAgente('${esc(g.pc)}')">Guardar agente</button></div>
+        <div class="row" style="display:flex;gap:6px;align-items:center;margin:6px 0;flex-wrap:wrap"><span style="font-size:12px;color:#9aa">🌐</span><select id="ofi_pxen_${esc(g.pc)}" style="width:100px"><option value="0" ${pxOn?'':'selected'}>Proxy off</option><option value="1" ${pxOn?'selected':''}>Proxy on</option></select><input id="ofi_pxhost_${esc(g.pc)}" value="${pxHost}" autocomplete="off" placeholder="host" style="flex:1;min-width:110px"><input id="ofi_pxport_${esc(g.pc)}" value="${pxPort}" autocomplete="off" placeholder="puerto" style="width:75px"><select id="ofi_pxproto_${esc(g.pc)}" style="width:85px"><option value="http" ${pxProto==='socks5'?'':'selected'}>http</option><option value="socks5" ${pxProto==='socks5'?'selected':''}>socks5</option></select><input id="ofi_pxuser_${esc(g.pc)}" value="${pxUser}" autocomplete="off" placeholder="usuario" style="width:110px"><input id="ofi_pxpass_${esc(g.pc)}" type="password" autocomplete="new-password" placeholder="${_px?'clave guardada 🔒 (dejá vacío para no cambiar)':'clave 🔒'}" style="width:110px"><button class="blue small" onclick="oficinaGuardarProxy('${esc(g.pc)}')">Guardar proxy</button></div>
+        <div style="margin:6px 0;font-size:12px">🎁 Promo primer ingreso: <b style="color:${promoOn?'#22c55e':'#fca5a5'}">${promoOn?'ACTIVADA':'desactivada'}</b> <button class="small" onclick="oficinaTogglePromo('${esc(g.pc)}',${promoOn?0:1})">${promoOn?'Desactivar':'Activar'}</button></div>
+        <div style="margin:6px 0">Puestos: ${chips||'<span style="color:#fca5a5">ninguno</span>'}</div>
+        <div class="row" style="display:flex;gap:6px"><input id="ofi_addp_${esc(g.pc)}" placeholder="Nuevo puesto Chunior" style="flex:1"><button class="blue small" onclick="oficinaAgregarPuesto('${esc(g.pc)}','${esc(g.oficina_id)}')">+ Puesto</button></div>
+      </div>`;
+    }).join("");
+  };
+  window.oficinaAgregarPuesto=async function(pc, oficina_id){
+    const inp=$id("ofi_addp_"+pc); const a=((inp&&inp.value)||"").trim().toUpperCase();
+    if(!a) return;
+    const tok=(typeof requireAdminToken==="function")?requireAdminToken():null;
+    try{
+      await rpcRowsSafe("admin_general_guardar_alias",{p_session_token:tok,p_id:null,p_alias_codigo:a,p_oficina_id:oficina_id,p_pc_codigo_compat:pc,p_activa:true,p_observaciones:"Puesto agregado"},async()=>{
+        const r=await supabaseClient.from("nodo_oficina_aliases").insert([{alias_codigo:a,oficina_id:oficina_id,pc_codigo_compat:pc,activa:true,observaciones:"Puesto agregado"}]); if(r.error)throw r.error; return [];
+      });
+      if(typeof toast==="function") toast("Puesto agregado","okb");
+      await oficinaListaCargar();
+    }catch(e){ if(typeof toast==="function") toast("Error: "+(e.message||e),"err"); }
+  };
+  window.oficinaQuitarPuesto=async function(id){
+    if(!confirm("¿Quitar este puesto?")) return;
+    const tok=(typeof requireAdminToken==="function")?requireAdminToken():null;
+    try{
+      const {error}=await supabaseClient.rpc("admin_general_eliminar_alias",{p_session_token:tok,p_id:Number(id)});
+      if(error) throw error;
+      if(typeof toast==="function") toast("Puesto quitado","okb");
+      await oficinaListaCargar();
+    }catch(e){ if(typeof toast==="function") toast("Error: "+(e.message||e),"err"); }
+  };
+  window.oficinaEliminar=async function(pc){
+    if(!confirm("¿Eliminar la oficina "+pc+"? Borra su ruta del portal y todos sus puestos. Las billeteras NO se borran.")) return;
+    const tok=(typeof requireAdminToken==="function")?requireAdminToken():null;
+    try{
+      const {error}=await supabaseClient.rpc("admin_eliminar_oficina",{p_session_token:tok,p_pc_codigo:pc});
+      if(error) throw error;
+      if(typeof toast==="function") toast("Oficina eliminada","okb");
+      await oficinaListaCargar();
+    }catch(e){ if(typeof toast==="function") toast("Error: "+(e.message||e),"err"); }
+  };
+  window.oficinaTogglePromo=async function(pc, activar){
+    const tok=(typeof requireAdminToken==="function")?requireAdminToken():null;
+    try{
+      const {error}=await supabaseClient.rpc("admin_general_set_promo",{p_session_token:tok,p_pc_codigo:pc,p_activa:(Number(activar)===1)});
+      if(error) throw error;
+      if(typeof toast==="function") toast(Number(activar)===1?"Promo activada 🎁":"Promo desactivada","okb");
+      await oficinaListaCargar();
+    }catch(e){ if(typeof toast==="function") toast("Error: "+(e.message||e),"err"); }
+  };
+  window.oficinaGuardarAgente=async function(pc){
+    const u=$id("ofi_au_"+pc), p=$id("ofi_ap_"+pc);
+    const usuario=((u&&u.value)||"").trim(), clave=((p&&p.value)||"");
+    if(!usuario && !clave){ if(typeof toast==="function") toast("Cargá usuario y/o clave del agente","warn"); return; }
+    const tok=(typeof requireAdminToken==="function")?requireAdminToken():null;
+    try{
+      const {error}=await supabaseClient.rpc("admin_set_agente_credenciales",{p_session_token:tok,p_pc_codigo:pc,p_usuario:usuario,p_clave:clave});
+      if(error) throw error;
+      if(typeof toast==="function") toast("Credenciales de agente guardadas 🔒","okb");
+      if(p) p.value=""; // no dejar la clave en el DOM
+    }catch(e){ if(typeof toast==="function") toast("Error: "+(e.message||e),"err"); }
+  };
+  window.oficinaGuardarProxy=async function(pc){
+    const g=function(id){const e=$id(id+"_"+pc);return e?String(e.value||"").trim():"";};
+    const tok=(typeof requireAdminToken==="function")?requireAdminToken():null;
+    try{
+      const {error}=await supabaseClient.rpc("admin_set_proxy",{p_session_token:tok,p_pc_codigo:pc,
+        p_enabled:(g("ofi_pxen")==="1"),p_protocol:g("ofi_pxproto")||"http",
+        p_host:g("ofi_pxhost"),p_port:g("ofi_pxport"),
+        p_username:g("ofi_pxuser"),p_password:g("ofi_pxpass"),p_bypass:""});
+      if(error) throw error;
+      if(typeof toast==="function") toast("Proxy guardado 🌐","okb");
+      const pp=$id("ofi_pxpass_"+pc); if(pp) pp.value="";
+    }catch(e){ if(typeof toast==="function") toast("Error: "+(e.message||e),"err"); }
+  };
+  window.oficinaGuardarSubdominio=async function(pc){
+    const inp=$id("ofi_sub_"+pc); const sub=((inp&&inp.value)||"").trim().toLowerCase();
+    const tok=(typeof requireAdminToken==="function")?requireAdminToken():null;
+    try{
+      const {error}=await supabaseClient.rpc("admin_general_set_subdominio",{p_session_token:tok,p_pc_codigo:pc,p_subdominio:sub,p_host:""});
+      if(error) throw error;
+      if(typeof toast==="function") toast("Subdominio guardado","okb");
+      await oficinaListaCargar();
+    }catch(e){ if(typeof toast==="function") toast("Error: "+(e.message||e),"err"); }
+  };
+  // Editar WhatsApp/link de la ruta DESDE la tarjeta de Oficinas (antes solo en la sección Rutas).
+  window.oficinaGuardarRuta=async function(pc){
+    const gv2=function(id){const e=$id(id+"_"+pc);return e?String(e.value||"").trim():"";};
+    const tok=(typeof requireAdminToken==="function")?requireAdminToken():null;
+    const full=(window._rutasFull||[]).find(x=>String(x.pc_codigo||"").toUpperCase()===String(pc||"").toUpperCase());
+    if(!full||!full.public_code){ if(typeof toast==="function") toast("Esta oficina no tiene ruta/public_code todavía. Creala desde el alta.","warn"); return; }
+    try{
+      await rpcRowsSafe("admin_general_guardar_ruta",{p_session_token:tok,p_id:full.id||null,p_pc_codigo:pc,p_public_code:full.public_code,p_nombre_publico:full.nombre_publico||pc,p_link_plataforma:gv2("ofi_link"),p_whatsapp_numero:gv2("ofi_wpp"),p_activo:(full.activo!==false)},async()=>{
+        const r=await supabaseClient.from("landing_rutas_publicas").update({link_plataforma:gv2("ofi_link"),whatsapp_numero:gv2("ofi_wpp"),updated_at:new Date().toISOString()}).eq("pc_codigo",pc);
+        if(r.error) throw r.error; return [];
+      });
+      if(typeof toast==="function") toast("Ruta guardada (WhatsApp/link) 📲","okb");
+      window._rutasFull=null; window.__rutasFullLoading=false;
+      await oficinaListaCargar();
+    }catch(e){ if(typeof toast==="function") toast("Error: "+(e.message||e),"err"); }
+  };
+  window.oficinaCopiarLink=function(code, sub){
+    const BASE_DOMAIN="portal-bet-300.com"; // dominio final (cambiar acá si difiere)
+    const link = (sub && String(sub).trim())
+      ? ("https://"+String(sub).trim()+"."+BASE_DOMAIN)
+      : ("https://"+BASE_DOMAIN+"/?r="+code);
+    try{ navigator.clipboard.writeText(link).then(function(){ if(typeof toast==="function") toast("Link copiado: "+link,"okb"); }); }
+    catch(_e){ try{ prompt("Copiá el link:", link); }catch(__e){} }
+  };
+  const _oldShowSectionOfi=window.showSection;
+  if(typeof _oldShowSectionOfi==="function"){
+    window.showSection=function(s){ _oldShowSectionOfi(s); if(s==="altaofi"){ ensureSectionOficina(); setTimeout(function(){ try{ oficinaListaCargar(); }catch(_e){} },100); } };
+  }
+  document.addEventListener("DOMContentLoaded",function(){ setTimeout(ensureSectionOficina,400); });
+  setTimeout(ensureSectionOficina, 1500);
+})();
+</script>
 </body></html>
