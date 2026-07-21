@@ -1708,4 +1708,73 @@ testResolverAlias = async function(){
   setTimeout(ensureSectionOficina, 1500);
 })();
 </script>
+
+<!-- ============================================================
+     NODO · ADMI · V25 · Blindaje de scope para ENCARGADOS
+     Un encargado (puede_todas=false) NO debe ver NADA de otra PC:
+       • Oculta las secciones Mapa Maestro / Aliases Chunior / Oficinas (catálogo).
+       • Scopea los datos globales que quedaban sin filtrar: pcs, aliasesOficina, rutasPublicas.
+       • En "Oficinas todo en uno" (altaofi) deja SOLO el alta (crear suboficinas); oculta la
+         lista de "Oficinas existentes".
+     El Master (puede_todas / rol ADMIN) ve todo como siempre.
+     ============================================================ -->
+<script>
+(function(){
+  function _np(v){ try{ if(typeof normPc==='function') return normPc(v); }catch(_e){} return String(v||'').trim().toUpperCase(); }
+  function _forcedPc(){
+    try{
+      const s = (typeof adminScope!=='undefined' && adminScope) ? adminScope : null;
+      if(!s) return '';
+      const todas = (s.puede_todas===true || String(s.rol||'').toUpperCase()==='ADMIN');
+      if(todas) return '';
+      return _np(s.pc_codigo_efectivo || s.pc_codigo || s.pc_codigo_original || '');
+    }catch(_e){ return ''; }
+  }
+
+  // 1) Scopear los arrays globales que se renderizaban completos.
+  function _scopeData(){
+    const pc = _forcedPc(); if(!pc) return;
+    try{ if(typeof pcs!=='undefined' && Array.isArray(pcs)) pcs = pcs.filter(p=>_np(p&&p.pc_codigo)===pc); }catch(_e){}
+    try{ if(typeof aliasesOficina!=='undefined' && Array.isArray(aliasesOficina)) aliasesOficina = aliasesOficina.filter(a=>_np(a&&a.pc_codigo_compat)===pc); }catch(_e){}
+    try{ if(typeof rutasPublicas!=='undefined' && Array.isArray(rutasPublicas)) rutasPublicas = rutasPublicas.filter(r=>_np(r&&r.pc_codigo)===pc); }catch(_e){}
+    try{ if(window._rutasFull && Array.isArray(window._rutasFull)) window._rutasFull = window._rutasFull.filter(r=>_np(r&&r.pc_codigo)===pc); }catch(_e){}
+  }
+  // Envolver loaders → re-filtrar tras cada carga (loadPcs/loadAliasesOficina son function declarations → window.X es la misma binding).
+  ['loadPcs','loadAliasesOficina'].forEach(function(fn){
+    const old = window[fn];
+    if(typeof old==='function'){
+      window[fn] = async function(){ const r = await old.apply(this,arguments); try{ _scopeData(); }catch(_e){} return r; };
+    }
+  });
+
+  // 2) Ocultar secciones/nav que exponen otras PCs + acotar "Oficinas todo en uno".
+  const OCULTAR = ['mapa','aliases','pcs'];   // Mapa Maestro · Aliases Chunior · Oficinas (catálogo)
+  function _applySectionScope(){
+    const encargado = !!_forcedPc();
+    OCULTAR.forEach(function(sec){
+      const btn  = document.querySelector('[data-section="'+sec+'"]');
+      const sect = document.getElementById('section-'+sec);
+      if(btn)  btn.style.display  = encargado ? 'none' : '';
+      if(sect){
+        sect.style.display = encargado ? 'none' : '';
+        if(encargado && sect.classList.contains('active')){
+          sect.classList.remove('active');
+          const dash=document.getElementById('section-dashboard'); if(dash) dash.classList.add('active');
+          const db=document.querySelector('[data-section="dashboard"]'); if(db) db.classList.add('active');
+        }
+      }
+    });
+    // Oficinas todo en uno (altaofi): encargado SOLO crea suboficinas → ocultar "Oficinas existentes".
+    const lista = document.getElementById('ofi_lista');
+    const card  = lista && lista.closest('.card');
+    if(card) card.style.display = encargado ? 'none' : '';
+  }
+  setInterval(_applySectionScope, 1500);
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',()=>setTimeout(_applySectionScope,700));
+  else setTimeout(_applySectionScope,700);
+  const _oldShow = window.showSection;
+  if(typeof _oldShow==='function'){ window.showSection = function(){ const r=_oldShow.apply(this,arguments); setTimeout(_applySectionScope,0); try{_scopeData();}catch(_e){} return r; }; }
+})();
+</script>
+
 </body></html>
