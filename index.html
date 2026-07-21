@@ -1767,7 +1767,8 @@ testResolverAlias = async function(){
     // Oficinas todo en uno (altaofi): encargado SOLO crea suboficinas → ocultar "Oficinas existentes".
     const lista = document.getElementById('ofi_lista');
     const card  = lista && lista.closest('.card');
-    if(card) card.style.display = encargado ? 'none' : '';
+    if(card) card.style.display = '';
+    if(encargado && lista){ lista.querySelectorAll('[onclick^="oficinaEliminar"]').forEach(function(b){ b.style.display='none'; }); }
   }
   setInterval(_applySectionScope, 1500);
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',()=>setTimeout(_applySectionScope,700));
