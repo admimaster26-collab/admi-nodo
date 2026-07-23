@@ -1777,8 +1777,6 @@ testResolverAlias = async function(){
   if(typeof _oldShow==='function'){ window.showSection = function(){ const r=_oldShow.apply(this,arguments); setTimeout(_applySectionScope,0); try{_scopeData();}catch(_e){} return r; }; }
 })();
 </script>
-
-<script>
 <script>
 /* ============================================================
    NODO · ADMI · Encargado multi-oficina (UI completa) — v2
@@ -1941,4 +1939,6 @@ testResolverAlias = async function(){
   else document.addEventListener('DOMContentLoaded', function(){ setTimeout(hookSave, 900); });
 })();
 </script>
+
+
 </body></html>
