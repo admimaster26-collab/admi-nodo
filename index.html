@@ -1964,4 +1964,59 @@ async function deleteBilletera(id){
   }catch(e){ toast("Error al eliminar: "+(e.message||e),"err"); }
 }
 </script>
+  <script>
+/* ============================================================
+   NODO · ADMI · Encargado multi-oficina (UI)
+   Backend: panel_validar_admin_session (pcs) + admin_set_active_pc + admin_get_scope.
+   Para un encargado con VARIAS oficinas: el selector global muestra SOLO sus oficinas,
+   y al cambiar, fija la "oficina activa" en el server antes de recargar.
+   Autocontenido: pisa fillPcSelects y cambiarOficinaAdmin, sin tocar el resto.
+   ============================================================ */
+(function(){
+  function esMulti(){
+    return !!(window.adminScope && adminScope.puede_todas === false
+      && Array.isArray(adminScope.pcs) && adminScope.pcs.length > 1);
+  }
+  function codsMulti(){
+    return adminScope.pcs.map(normPc).filter(Boolean).sort(function(a,b){ return pcNum(a)-pcNum(b); });
+  }
+
+  // fillPcSelects: corre la original y, si es multi, repuebla el selector global con TODAS sus oficinas.
+  var _fill = window.fillPcSelects;
+  window.fillPcSelects = function(){
+    try{ if(_fill) _fill(); }catch(_e){}
+    if(!esMulti()) return;
+    try{
+      var cods = codsMulti();
+      var opts = cods.map(function(c){ return '<option value="'+safe(c)+'">'+safe(pcLabel(c))+'</option>'; }).join("");
+      var g = $("globalPc");
+      if(g){
+        g.innerHTML = opts;
+        g.value = normPc(adminScope.pc_codigo) || cods[0] || "";
+        g.disabled = false; g.style.display = "";
+        if(g.parentElement) g.parentElement.style.display = "";
+      }
+    }catch(_e){}
+  };
+
+  // cambiarOficinaAdmin: fija la oficina ACTIVA en el server (admin_set_active_pc) antes de recargar.
+  var _cambiar = window.cambiarOficinaAdmin;
+  window.cambiarOficinaAdmin = async function(){
+    if(esMulti()){
+      var pc = normPc(val("globalPc"));
+      if(pc){
+        try{
+          var r = await supabaseClient.rpc('admin_set_active_pc', { p_session_token: requireAdminToken(), p_pc: pc });
+          if(r && r.error){ toast('No pude cambiar de oficina: ' + r.error.message, 'err'); return; }
+          adminScope.pc_codigo = pc; // reflejar la activa en el cliente
+        }catch(e){ toast('Error cambiando oficina: ' + (e.message || e), 'err'); return; }
+      }
+    }
+    return _cambiar ? _cambiar() : (typeof reloadAll === 'function' ? reloadAll(true) : null);
+  };
+
+  // Aplicar ya si el admin está logueado.
+  try{ if(esMulti()) window.fillPcSelects(); }catch(_e){}
+})();
+</script>
 </body></html>
