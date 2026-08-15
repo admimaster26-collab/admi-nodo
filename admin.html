@@ -245,7 +245,7 @@ async function cargar(){
   const [vivo,dash,emb,crec]=await Promise.all([
     sb.rpc("admin_od_operacion_vivo_v2",{p_session_token:token}).then(r=>r.data).catch(()=>null),
     sb.rpc("admin_od_dashboard_resumen_v2",{p_session_token:token,p_desde:hoy.toISOString(),p_hasta:null,p_pc_codigo:pc}).then(r=>r.data).catch(()=>null),
-    sb.rpc("admin_od_embudo_usuarios_v1",{p_session_token:token,p_desde:null,p_hasta:null,p_pc_codigo:pc,p_limit:1000}).then(r=>r.data).catch(()=>null),
+    sb.rpc("admin_od_embudo_usuarios_v1",{p_session_token:token,p_desde:null,p_hasta:null,p_pc_codigo:pc,p_limit:300}).then(r=>r.data).catch(()=>null),
     sb.rpc("admin_od_crecimiento_resumen_v2",{p_session_token:token,p_desde:null,p_hasta:null,p_pc_codigo:pc}).then(r=>r.data).catch(()=>null)
   ]);
   $("dotLive").classList.remove("off");
