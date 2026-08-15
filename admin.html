@@ -8,220 +8,244 @@
 <style>
 :root{
   --bg:#0e1116; --bg2:#141920; --card:#171d25; --line:#242c37; --line2:#1c232c;
-  --tx:#e6eaf0; --tx2:#98a3b3; --tx3:#64707f;
-  --ac:#4fb3b8; --ac2:#173036;
+  --tx:#e6eaf0; --tx2:#98a3b3; --tx3:#646f7d;
+  --ac:#4fb3b8; --acs:#163034;
   --ok:#54a97a; --warn:#c9963e; --bad:#cc6258; --info:#6f8fd0;
   --mono:ui-monospace,"SF Mono","Cascadia Mono",Menlo,Consolas,monospace;
   --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
 }
-@media (prefers-color-scheme:light){
-  :root{--bg:#f4f6f8;--bg2:#eef1f5;--card:#fff;--line:#dde3ea;--line2:#e9edf2;
-        --tx:#141a21;--tx2:#59636f;--tx3:#8a949f;--ac:#2b7d82;--ac2:#e3f1f2;
-        --ok:#3d8259;--warn:#a8792a;--bad:#b04a41;--info:#4a68a8;}
-}
-:root[data-theme="light"]{--bg:#f4f6f8;--bg2:#eef1f5;--card:#fff;--line:#dde3ea;--line2:#e9edf2;
-  --tx:#141a21;--tx2:#59636f;--tx3:#8a949f;--ac:#2b7d82;--ac2:#e3f1f2;
-  --ok:#3d8259;--warn:#a8792a;--bad:#b04a41;--info:#4a68a8;}
+@media (prefers-color-scheme:light){:root{
+  --bg:#f4f6f8;--bg2:#fff;--card:#fff;--line:#dee4ea;--line2:#eaeef2;
+  --tx:#131a21;--tx2:#57626e;--tx3:#8b959f;--ac:#26787d;--acs:#e2f0f1;
+  --ok:#3a7d55;--warn:#a1742a;--bad:#ab463d;--info:#4763a0;}}
+:root[data-theme="light"]{--bg:#f4f6f8;--bg2:#fff;--card:#fff;--line:#dee4ea;--line2:#eaeef2;
+  --tx:#131a21;--tx2:#57626e;--tx3:#8b959f;--ac:#26787d;--acs:#e2f0f1;
+  --ok:#3a7d55;--warn:#a1742a;--bad:#ab463d;--info:#4763a0;}
 :root[data-theme="dark"]{--bg:#0e1116;--bg2:#141920;--card:#171d25;--line:#242c37;--line2:#1c232c;
-  --tx:#e6eaf0;--tx2:#98a3b3;--tx3:#64707f;--ac:#4fb3b8;--ac2:#173036;
+  --tx:#e6eaf0;--tx2:#98a3b3;--tx3:#646f7d;--ac:#4fb3b8;--acs:#163034;
   --ok:#54a97a;--warn:#c9963e;--bad:#cc6258;--info:#6f8fd0;}
 
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--tx);font-family:var(--sans);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
 button,input,select{font-family:inherit;font-size:13px;color:inherit}
 .mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.hidden{display:none !important}
 
-/* ── barra superior ───────────────────────────────────────── */
-.top{position:sticky;top:0;z-index:20;background:var(--bg2);border-bottom:1px solid var(--line);
-     padding:10px 18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
-.brand{font-family:var(--mono);font-weight:700;letter-spacing:.1em;font-size:13px}
-.brand span{color:var(--ac)}
-.who{font-size:12px;color:var(--tx2)}
+/* barra */
+.top{position:sticky;top:0;z-index:30;background:var(--bg2);border-bottom:1px solid var(--line);
+     padding:9px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.brand{font-family:var(--mono);font-weight:700;letter-spacing:.09em;font-size:13px;white-space:nowrap}
+.brand i{color:var(--ac);font-style:normal}
+.who{font-size:12px;color:var(--tx2);white-space:nowrap}
 .spacer{flex:1}
-.ctl{background:var(--card);border:1px solid var(--line);border-radius:5px;padding:6px 10px;cursor:pointer}
-.ctl:hover{border-color:var(--ac)}
-.ctl:focus-visible{outline:2px solid var(--ac);outline-offset:1px}
-select.ctl{cursor:pointer}
+.ctl{background:var(--card);border:1px solid var(--line);border-radius:5px;padding:6px 10px;cursor:pointer;white-space:nowrap}
+.ctl:hover{border-color:var(--ac)} .ctl:focus-visible{outline:2px solid var(--ac);outline-offset:1px}
 a.ctl{text-decoration:none;color:var(--tx2)}
 .dot{width:7px;height:7px;border-radius:50%;background:var(--ok);display:inline-block;margin-right:6px}
-.dot.off{background:var(--tx3)}
+.dot.off{background:var(--warn)}
 
-.wrap{padding:20px 18px 70px;max-width:1500px;margin:0 auto;display:flex;flex-direction:column;gap:26px}
+/* pestañas */
+.tabs{position:sticky;top:47px;z-index:29;background:var(--bg);border-bottom:1px solid var(--line);
+      padding:0 16px;display:flex;gap:2px;overflow-x:auto}
+.tab{background:none;border:none;border-bottom:2px solid transparent;padding:11px 15px;
+     cursor:pointer;color:var(--tx3);font-weight:600;font-size:13px;white-space:nowrap}
+.tab:hover{color:var(--tx2)}
+.tab.on{color:var(--ac);border-bottom-color:var(--ac)}
+.tab .b{display:inline-block;margin-left:6px;background:var(--bad);color:#fff;border-radius:9px;
+        padding:0 6px;font-size:10px;font-family:var(--mono);font-weight:700}
 
-/* ── secciones ─────────────────────────────────────────────── */
-.sec{display:flex;flex-direction:column;gap:12px}
-.sh{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
-.sh h2{margin:0;font-size:15px;font-weight:650;letter-spacing:-.01em}
+.wrap{padding:20px 16px 70px;max-width:1500px;margin:0 auto}
+.pane{display:flex;flex-direction:column;gap:24px}
+.sec{display:flex;flex-direction:column;gap:11px}
+.sh{display:flex;align-items:baseline;gap:11px;flex-wrap:wrap}
+.sh h2{margin:0;font-size:14px;font-weight:650}
 .sh .hint{font-size:12px;color:var(--tx3)}
 
-/* ── tiras de kpi ──────────────────────────────────────────── */
-.strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(126px,1fr));gap:1px;
+/* kpis */
+.strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(124px,1fr));gap:1px;
        background:var(--line);border:1px solid var(--line);border-radius:6px;overflow:hidden}
-.kp{background:var(--card);padding:12px 13px;display:flex;flex-direction:column;gap:3px;min-width:0}
-.kp .v{font-family:var(--mono);font-size:22px;font-weight:600;letter-spacing:-.02em;line-height:1.1;
+.kp{background:var(--card);padding:11px 13px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.kp .v{font-family:var(--mono);font-size:21px;font-weight:600;letter-spacing:-.02em;line-height:1.15;
        font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .kp .k{font-size:11px;color:var(--tx3);line-height:1.3}
-.kp .s{font-family:var(--mono);font-size:10.5px;color:var(--tx3)}
+.kp .s{font-family:var(--mono);font-size:10px;color:var(--tx3)}
 
-/* ── tablas ────────────────────────────────────────────────── */
+/* tablas */
 .tw{overflow-x:auto;border:1px solid var(--line);border-radius:6px;background:var(--card)}
 table{border-collapse:collapse;width:100%;font-size:13px}
 th,td{padding:8px 11px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--line2);
       font-variant-numeric:tabular-nums}
-th{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--tx3);font-weight:600;
+th{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--tx3);font-weight:600;
    background:var(--card);position:sticky;top:0;z-index:1}
-th:first-child,td:first-child{text-align:left}
-td.l,th.l{text-align:left}
+th.s{cursor:pointer;user-select:none} th.s:hover{color:var(--ac)}
+th:first-child,td:first-child,.l{text-align:left}
 tbody tr:last-child td{border-bottom:none}
 tbody tr:hover{background:var(--line2)}
-.pc{font-family:var(--mono);font-weight:700;color:var(--ac)}
-.num{font-family:var(--mono)}
-.dim{color:var(--tx3)}
 tfoot td{font-weight:700;border-top:1px solid var(--line);border-bottom:none;background:var(--card)}
+.pc{font-family:var(--mono);font-weight:700;color:var(--ac);cursor:pointer}
+.pc:hover{text-decoration:underline}
+.num{font-family:var(--mono)} .dim{color:var(--tx3)}
 
-.pill{display:inline-block;padding:1px 7px;border-radius:3px;font-family:var(--mono);
-      font-size:10.5px;font-weight:600}
+.pill{display:inline-block;padding:1px 7px;border-radius:3px;font-family:var(--mono);font-size:10.5px;font-weight:600}
 .p-ok{background:color-mix(in srgb,var(--ok) 16%,transparent);color:var(--ok)}
 .p-warn{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)}
 .p-bad{background:color-mix(in srgb,var(--bad) 16%,transparent);color:var(--bad)}
+.p-info{background:color-mix(in srgb,var(--info) 16%,transparent);color:var(--info)}
 .p-dim{background:var(--line);color:var(--tx3)}
 
-/* ── barras inline ─────────────────────────────────────────── */
-.bar{height:5px;background:var(--line);border-radius:3px;overflow:hidden;min-width:56px}
-.bar i{display:block;height:100%;background:var(--ac);border-radius:3px}
-.bar i.bad{background:var(--bad)} .bar i.warn{background:var(--warn)} .bar i.ok{background:var(--ok)}
+.bar{height:5px;background:var(--line);border-radius:3px;overflow:hidden;min-width:50px;display:block}
+.bar i{display:block;height:100%;border-radius:3px;background:var(--ac)}
+.bar i.ok{background:var(--ok)} .bar i.warn{background:var(--warn)} .bar i.bad{background:var(--bad)}
 
-/* ── filtros ───────────────────────────────────────────────── */
-.filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-.filters input,.filters select{background:var(--card);border:1px solid var(--line);
-  border-radius:5px;padding:6px 9px}
+.filters{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+.filters input,.filters select{background:var(--card);border:1px solid var(--line);border-radius:5px;padding:6px 9px}
 .filters input:focus,.filters select:focus{outline:none;border-color:var(--ac)}
 .count{font-family:var(--mono);font-size:12px;color:var(--tx3);margin-left:auto}
 
-/* ── login ─────────────────────────────────────────────────── */
+.alert{display:flex;gap:11px;align-items:flex-start;background:var(--card);border:1px solid var(--line);
+       border-left:3px solid var(--warn);border-radius:5px;padding:10px 13px}
+.alert.alta{border-left-color:var(--bad)} .alert.baja{border-left-color:var(--info)}
+.alert .t{font-family:var(--mono);font-size:10.5px;color:var(--tx3);text-transform:uppercase;letter-spacing:.05em}
+.note{border-left:2px solid var(--ac);padding:2px 0 2px 12px;font-size:12.5px;color:var(--tx2);max-width:80ch}
+.load{color:var(--tx3);font-size:12px;font-family:var(--mono);padding:14px}
+.err{color:var(--bad);font-size:12px;font-family:var(--mono);padding:14px}
+
 .gate{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:100}
 .gate .box{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:26px;
            width:min(340px,90vw);display:flex;flex-direction:column;gap:12px}
-.gate h1{margin:0;font-size:16px;font-family:var(--mono);letter-spacing:.08em}
+.gate h1{margin:0;font-size:15px;font-family:var(--mono);letter-spacing:.08em}
 .gate input{background:var(--bg2);border:1px solid var(--line);border-radius:5px;padding:9px 11px}
-.gate button{background:var(--ac);color:#06181a;border:none;border-radius:5px;padding:10px;
-             font-weight:700;cursor:pointer}
+.gate button{background:var(--ac);color:#06181a;border:none;border-radius:5px;padding:10px;font-weight:700;cursor:pointer}
 .gate .msg{font-size:12px;color:var(--bad);min-height:16px}
-.hidden{display:none !important}
-.load{color:var(--tx3);font-size:12px;font-family:var(--mono);padding:14px}
-.note{border-left:2px solid var(--ac);padding:2px 0 2px 12px;font-size:12.5px;color:var(--tx2);max-width:78ch}
-footer{color:var(--tx3);font-size:11.5px;border-top:1px solid var(--line);padding-top:16px;max-width:100ch}
+footer{color:var(--tx3);font-size:11.5px;border-top:1px solid var(--line);padding-top:15px;margin-top:26px;max-width:100ch}
 </style>
 </head>
 <body>
 
-<div class="gate" id="gate">
-  <div class="box">
-    <h1>NODO · <span style="color:var(--ac)">TABLERO</span></h1>
-    <input id="u" placeholder="Usuario" autocomplete="username">
-    <input id="p" type="password" placeholder="Clave" autocomplete="current-password">
-    <button id="btnLogin">Ingresar</button>
-    <div class="msg" id="msg"></div>
-  </div>
-</div>
+<div class="gate" id="gate"><div class="box">
+  <h1>NODO · <span style="color:var(--ac)">TABLERO</span></h1>
+  <input id="u" placeholder="Usuario" autocomplete="username">
+  <input id="p" type="password" placeholder="Clave" autocomplete="current-password">
+  <button id="btnLogin">Ingresar</button>
+  <div class="msg" id="msg"></div>
+</div></div>
 
 <div class="top hidden" id="top">
-  <span class="brand">NODO<span> ·</span> TABLERO</span>
+  <span class="brand">NODO <i>·</i> TABLERO</span>
   <span class="who" id="who"></span>
   <span class="spacer"></span>
   <select class="ctl" id="fpc"><option value="">Todas las oficinas</option></select>
-  <button class="ctl" id="btnRef"><span class="dot" id="dotLive"></span>Actualizar</button>
+  <button class="ctl" id="btnRef"><span class="dot" id="dot"></span>Actualizar</button>
   <a class="ctl" href="index.html">Herramientas</a>
-  <button class="ctl" id="btnTheme">◐</button>
+  <button class="ctl" id="btnTheme" title="Tema">◐</button>
   <button class="ctl" id="btnOut">Salir</button>
 </div>
 
+<nav class="tabs hidden" id="tabs">
+  <button class="tab on" data-t="op">Operación</button>
+  <button class="tab" data-t="din">Dinero</button>
+  <button class="tab" data-t="usr">Usuarios</button>
+  <button class="tab" data-t="ale">Alertas<span class="b hidden" id="badgeAle"></span></button>
+</nav>
+
 <div class="wrap hidden" id="app">
 
-  <section class="sec">
-    <div class="sh"><h2>Ahora</h2><span class="hint" id="hint-vivo">últimos 60 minutos</span></div>
-    <div class="strip" id="vivo"><div class="load">cargando…</div></div>
-  </section>
+  <!-- OPERACIÓN -->
+  <div class="pane" id="pane-op">
+    <div class="sec"><div class="sh"><h2>Ahora</h2><span class="hint" id="hOra"></span></div>
+      <div class="strip" id="k-vivo"><div class="load">cargando…</div></div></div>
+    <div class="sec"><div class="sh"><h2>Hoy por oficina</h2><span class="hint">desde las 00:00 · tocá una oficina para filtrar todo</span></div>
+      <div class="tw" id="t-hoy"></div></div>
+    <div class="sec"><div class="sh"><h2>Últimos errores</h2></div>
+      <div class="tw" id="t-err"></div></div>
+  </div>
 
-  <section class="sec">
-    <div class="sh"><h2>Hoy por oficina</h2><span class="hint">desde las 00:00</span></div>
-    <div class="tw" id="hoy"><div class="load">cargando…</div></div>
-  </section>
+  <!-- DINERO -->
+  <div class="pane hidden" id="pane-din">
+    <div class="sec"><div class="sh"><h2>Billeteras</h2><span class="hint">saldo actual</span></div>
+      <div class="strip" id="k-bil"><div class="load">cargando…</div></div></div>
+    <div class="sec"><div class="sh"><h2>Por oficina</h2></div>
+      <div class="tw" id="t-bilpc"></div></div>
+    <div class="sec"><div class="sh"><h2>Detalle</h2></div>
+      <div class="filters">
+        <select id="b-est"><option value="">Todas</option><option value="act">Solo activas</option><option value="inact">Solo inactivas</option></select>
+        <select id="b-ord"><option value="saldo">Mayor saldo</option><option value="saldo_asc">Menor saldo</option><option value="pc">Por oficina</option></select>
+        <input id="b-q" placeholder="Buscar billetera, titular o banco" style="min-width:220px">
+        <span class="count" id="b-count"></span>
+      </div>
+      <div class="tw" id="t-bil"></div></div>
+  </div>
 
-  <section class="sec">
-    <div class="sh"><h2>Usuarios perdidos</h2>
-      <span class="hint">entraron al portal y nunca completaron una operación</span></div>
-    <div class="strip" id="emb-kpi"><div class="load">cargando…</div></div>
-    <div class="tw" id="emb-pc"></div>
-    <p class="note" id="emb-note"></p>
+  <!-- USUARIOS -->
+  <div class="pane hidden" id="pane-usr">
+    <div class="sec"><div class="sh"><h2>Embudo</h2><span class="hint">entraron al portal y nunca completaron una operación</span></div>
+      <div class="strip" id="k-emb"><div class="load">cargando…</div></div></div>
+    <div class="sec"><div class="sh"><h2>Por oficina</h2></div>
+      <div class="tw" id="t-embpc"></div>
+      <p class="note" id="n-emb"></p></div>
+    <div class="sec"><div class="sh"><h2>Quiénes son</h2><span class="hint">con teléfono, para recontactar</span></div>
+      <div class="filters">
+        <select id="e-tipo"><option value="">Todo tipo</option><option>SOPORTE</option><option>CARGA</option><option>RETIRO</option></select>
+        <select id="e-dias"><option value="">Cualquier antigüedad</option><option value="7">Últimos 7 días</option>
+          <option value="30">Últimos 30 días</option><option value="31+">Más de 30 días</option></select>
+        <input id="e-q" placeholder="Buscar usuario o teléfono" style="min-width:210px">
+        <span class="count" id="e-count"></span>
+      </div>
+      <div class="tw" id="t-emb"></div></div>
+  </div>
 
-    <div class="filters">
-      <select id="f-pc2"><option value="">Todas</option></select>
-      <select id="f-tipo"><option value="">Todo tipo</option><option>SOPORTE</option><option>CARGA</option><option>RETIRO</option></select>
-      <select id="f-dias">
-        <option value="">Cualquier antigüedad</option>
-        <option value="7">Últimos 7 días</option>
-        <option value="30">Últimos 30 días</option>
-        <option value="31+">Más de 30 días</option>
-      </select>
-      <input id="f-txt" placeholder="Buscar usuario o teléfono" style="min-width:210px">
-      <span class="count" id="emb-count"></span>
-    </div>
-    <div class="tw" id="emb-list"></div>
-  </section>
+  <!-- ALERTAS -->
+  <div class="pane hidden" id="pane-ale">
+    <div class="sec"><div class="sh"><h2>Requieren atención</h2></div>
+      <div id="l-ale" style="display:flex;flex-direction:column;gap:8px"><div class="load">cargando…</div></div></div>
+    <div class="sec"><div class="sh"><h2>Bonos y validaciones</h2><span class="hint">del período</span></div>
+      <div class="strip" id="k-crec"></div></div>
+  </div>
 
-  <section class="sec">
-    <div class="sh"><h2>Captación</h2><span class="hint">usuarios nuevos por semana</span></div>
-    <div class="tw" id="cap"><div class="load">cargando…</div></div>
-  </section>
-
-  <footer>
+  <footer id="pie">
     <b>Cómo se mide.</b> Un usuario cuenta como nuevo en la fecha de su primera solicitud desde el
     portal — sirve en todas las oficinas, a diferencia del bono, que depende de que la promo esté
     activa y de que el operador deje el tilde. «Perdido» es quien generó al menos una solicitud y
-    nunca llegó a tener una operación ejecutada en el historial. Los minutos de respuesta del chat
-    son hasta la última respuesta registrada, no la primera.
+    nunca llegó a tener una operación ejecutada. Cada sección se consulta al abrirla; el botón
+    Actualizar recarga la que estás viendo.
   </footer>
 </div>
 
 <script>
-const SUPABASE_URL="https://pjvvyvfcwjoocjqvdror.supabase.co";
-const SUPABASE_ANON_KEY="sb_publishable_NYqRoKptTgcL90VAVF2kqA_Gl06mEUF";
-const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
-const TOKEN_KEY="nodo_admin_v18_token";
+const SB_URL="https://pjvvyvfcwjoocjqvdror.supabase.co";
+const SB_KEY="sb_publishable_NYqRoKptTgcL90VAVF2kqA_Gl06mEUF";
+const sb=supabase.createClient(SB_URL,SB_KEY);
+const TOKEN_KEY="nodo_admin_v18_token", TH="nodo_admi_tema";
 const $=i=>document.getElementById(i);
-let token="", scope=null, EMB=null, PCS=[];
-
 const nf=new Intl.NumberFormat("es-AR");
 const money=n=>"$"+nf.format(Math.round(Number(n)||0));
+const kmoney=n=>{n=Number(n)||0;return n>=1e6?"$"+(n/1e6).toFixed(1)+"M":n>=1e3?"$"+Math.round(n/1e3)+"k":"$"+Math.round(n);};
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const pill=(t,c)=>`<span class="pill p-${c}">${esc(t)}</span>`;
-const bar=(v,max,cls)=>`<span class="bar" title="${v}"><i class="${cls||''}" style="width:${max?Math.round(100*v/max):0}%"></i></span>`;
+const barra=(v,max,cls)=>`<span class="bar"><i class="${cls||''}" style="width:${max?Math.max(2,Math.round(100*v/max)):0}%"></i></span>`;
+const kp=(v,k,s,col)=>`<div class="kp"><div class="v"${col?` style="color:${col}"`:""}>${v}</div><div class="k">${k}</div>${s?`<div class="s">${s}</div>`:""}</div>`;
 
-/* ── tema ───────────────────────────────────────────────── */
-const TH="nodo_admi_tema";
+let token="",scope=null,PCS=[],TAB="op",D={},CARGADO={};
+
 function tema(t){document.documentElement.setAttribute("data-theme",t);localStorage.setItem(TH,t);}
-tema(localStorage.getItem(TH)|| (matchMedia("(prefers-color-scheme:light)").matches?"light":"dark"));
+tema(localStorage.getItem(TH)||(matchMedia("(prefers-color-scheme:light)").matches?"light":"dark"));
 $("btnTheme").onclick=()=>tema(document.documentElement.getAttribute("data-theme")==="dark"?"light":"dark");
 
-/* ── sesión ─────────────────────────────────────────────── */
+/* ── sesión ───────────────────────────────────────────── */
 async function validar(t){
   const {data,error}=await sb.rpc("panel_validar_admin_session",{p_session_token:t});
   if(error) return false;
   const s=Array.isArray(data)?data[0]:data;
   if(!s||s.ok!==true) return false;
-  token=t; scope=s; localStorage.setItem(TOKEN_KEY,t);
-  $("gate").classList.add("hidden"); $("top").classList.remove("hidden"); $("app").classList.remove("hidden");
-  $("who").innerHTML=`${esc(s.nombre||s.usuario)} · ${pill(s.rol||"ADMIN","dim")} ${pill(s.puede_todas?"TODAS":s.pc_codigo||"—",s.puede_todas?"ok":"warn")}`;
-  // Un encargado ve SOLO su oficina. El corte real lo hace admin_od_scope_effective en la base
-  // (si no puede ver todas, pisa el pc_codigo pedido con el suyo), asi que esto no es la
-  // seguridad: es no mostrar un control que igual no haria nada y confundiria.
-  if(!s.puede_todas){
-    const f=$("fpc"), f2=$("f-pc2"), mio=s.pc_codigo||"";
-    [f,f2].forEach(el=>{ if(!el) return;
-      el.innerHTML=`<option value="${esc(mio)}">${esc(mio)}</option>`;
-      el.value=mio; el.disabled=true; el.title="Tu usuario ve solo "+mio; });
-  }
+  token=t;scope=s;localStorage.setItem(TOKEN_KEY,t);
+  $("gate").classList.add("hidden");
+  ["top","tabs","app"].forEach(i=>$(i).classList.remove("hidden"));
+  $("who").innerHTML=`${esc(s.nombre||s.usuario)} · ${pill(s.rol||"ADMIN","dim")} ${pill(s.puede_todas?"TODAS":(s.pc_codigo||"—"),s.puede_todas?"ok":"warn")}`;
+  // Un encargado ve SOLO su oficina. El corte real lo hace admin_od_scope_effective en la base;
+  // esto es para no mostrar un control que no haría nada.
+  if(!s.puede_todas){const f=$("fpc"),mio=s.pc_codigo||"";
+    f.innerHTML=`<option value="${esc(mio)}">${esc(mio)}</option>`;f.value=mio;f.disabled=true;
+    f.title="Tu usuario ve solo "+mio;}
   return true;
 }
 $("btnLogin").onclick=async()=>{
@@ -229,149 +253,197 @@ $("btnLogin").onclick=async()=>{
   const {data}=await sb.rpc("panel_login",{p_usuario:$("u").value.trim(),p_clave:$("p").value,p_ip:null,p_user_agent:"admi-tablero"});
   const r=Array.isArray(data)?data[0]:data;
   if(!r||r.ok!==true||!r.session_token){$("msg").textContent=r?.mensaje||"Usuario o clave incorrectos";return;}
-  if(await validar(r.session_token)) cargar(); else $("msg").textContent="No se pudo validar la sesión.";
+  if(await validar(r.session_token)) abrir("op"); else $("msg").textContent="No se pudo validar la sesión.";
 };
 $("p").addEventListener("keydown",e=>{if(e.key==="Enter")$("btnLogin").click();});
 $("btnOut").onclick=async()=>{try{await sb.rpc("panel_logout",{p_session_token:token});}catch(e){}
   localStorage.removeItem(TOKEN_KEY);location.reload();};
-$("btnRef").onclick=()=>cargar();
-$("fpc").onchange=()=>cargar();
 
-/* ── carga ──────────────────────────────────────────────── */
-async function cargar(){
-  const pc=$("fpc").value||null;
-  $("dotLive").classList.add("off");
-  const hoy=new Date(); hoy.setHours(0,0,0,0);
-  const [vivo,dash,emb,crec]=await Promise.all([
-    sb.rpc("admin_od_operacion_vivo_v2",{p_session_token:token}).then(r=>r.data).catch(()=>null),
-    sb.rpc("admin_od_dashboard_resumen_v2",{p_session_token:token,p_desde:hoy.toISOString(),p_hasta:null,p_pc_codigo:pc}).then(r=>r.data).catch(()=>null),
-    sb.rpc("admin_od_embudo_usuarios_v1",{p_session_token:token,p_desde:null,p_hasta:null,p_pc_codigo:pc,p_limit:300}).then(r=>r.data).catch(()=>null),
-    sb.rpc("admin_od_crecimiento_resumen_v2",{p_session_token:token,p_desde:null,p_hasta:null,p_pc_codigo:pc}).then(r=>r.data).catch(()=>null)
-  ]);
-  $("dotLive").classList.remove("off");
-  pintarVivo(vivo); pintarHoy(dash); pintarEmbudo(emb); pintarCaptacion(crec);
+/* ── pestañas: cada una consulta lo suyo al abrirse ────── */
+document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>abrir(b.dataset.t));
+function abrir(t){
+  TAB=t;
+  document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("on",b.dataset.t===t));
+  ["op","din","usr","ale"].forEach(k=>$("pane-"+k).classList.toggle("hidden",k!==t));
+  if(!CARGADO[t]) cargar(t);
 }
+$("btnRef").onclick=()=>cargar(TAB,true);
+$("fpc").onchange=()=>{CARGADO={};cargar(TAB,true);};
 
-/* ── ahora ──────────────────────────────────────────────── */
-function pintarVivo(d){
-  const k=d?.kpis; if(!k){$("vivo").innerHTML='<div class="load">sin datos</div>';return;}
-  const kp=(v,t,s,col)=>`<div class="kp"><div class="v"${col?` style="color:${col}"`:""}>${v}</div>
-     <div class="k">${t}</div>${s?`<div class="s">${s}</div>`:""}</div>`;
-  $("vivo").innerHTML=
+async function rpc(nombre,args){
+  const {data,error}=await sb.rpc(nombre,args);
+  if(error) throw new Error(error.message||"Falló "+nombre);
+  if(data && data.ok===false) throw new Error(data.error||"Sin permiso");
+  return data;
+}
+async function cargar(t,forzar){
+  const pc=$("fpc").value||null;
+  $("dot").classList.add("off");
+  try{
+    if(t==="op"){
+      const [v,d]=await Promise.all([
+        rpc("admin_od_operacion_vivo_v2",{p_session_token:token}),
+        rpc("admin_od_dashboard_resumen_v2",{p_session_token:token,p_desde:hoy0(),p_hasta:null,p_pc_codigo:pc})]);
+      D.vivo=v;D.dash=d;pintarOp();
+    }
+    if(t==="din"){ D.bil=await rpc("admin_od_billeteras_v1",{p_session_token:token,p_pc_codigo:pc}); pintarDin(); }
+    if(t==="usr"){ D.emb=await rpc("admin_od_embudo_usuarios_v1",{p_session_token:token,p_desde:null,p_hasta:null,p_pc_codigo:pc,p_limit:300}); pintarUsr(); }
+    if(t==="ale"){ D.crec=await rpc("admin_od_crecimiento_resumen_v2",{p_session_token:token,p_desde:null,p_hasta:null,p_pc_codigo:pc}); pintarAle(); }
+    CARGADO[t]=true;
+  }catch(e){
+    const destino={op:"k-vivo",din:"k-bil",usr:"k-emb",ale:"l-ale"}[t];
+    $(destino).innerHTML=`<div class="err">No se pudo cargar: ${esc(e.message)}</div>`;
+  }finally{ $("dot").classList.remove("off"); }
+}
+function hoy0(){const d=new Date();d.setHours(0,0,0,0);return d.toISOString();}
+function filtrarPc(pc){ if($("fpc").disabled) return; $("fpc").value=pc; CARGADO={}; cargar(TAB,true); }
+window.filtrarPc=filtrarPc;
+
+/* ── OPERACIÓN ────────────────────────────────────────── */
+function pintarOp(){
+  const k=D.vivo?.kpis||{}, d=D.dash||{}, rows=d.por_pc||[], kk=d.kpis||{};
+  $("hOra").textContent="actualizado "+new Date().toLocaleTimeString("es-AR",{hour:"2-digit",minute:"2-digit"});
+  $("k-vivo").innerHTML=
      kp(nf.format(k.ops_ultimos_15m??0),"operaciones","últimos 15 min")
    + kp(nf.format(k.ops_ultimos_60m??0),"operaciones","última hora")
-   + kp(nf.format(k.cargas_ultimos_60m??0),"cargas","última hora",'var(--ok)')
-   + kp(nf.format(k.retiros_ultimos_60m??0),"retiros","última hora",'var(--warn)')
-   + kp(nf.format(k.pendientes_portal??0),"pendientes",'',(k.pendientes_portal>0?'var(--warn)':''))
-   + kp(nf.format(k.chats_sin_responder??0),"chats sin responder",'',(k.chats_sin_responder>0?'var(--bad)':''))
-   + kp(nf.format(k.chats_abiertos??0),"chats abiertos")
-   + kp(nf.format(k.errores_hoy??0),"errores hoy",'',(k.errores_hoy>0?'var(--bad)':''));
-}
+   + kp(nf.format(k.cargas_ultimos_60m??0),"cargas","última hora","var(--ok)")
+   + kp(nf.format(k.retiros_ultimos_60m??0),"retiros","última hora","var(--warn)")
+   + kp(nf.format(k.pendientes_portal??0),"pendientes","",k.pendientes_portal>0?"var(--warn)":"")
+   + kp(nf.format(k.chats_sin_responder??0),"chats sin responder","",k.chats_sin_responder>0?"var(--bad)":"")
+   + kp(nf.format(k.errores_hoy??0),"errores hoy","",k.errores_hoy>0?"var(--bad)":"");
 
-/* ── hoy por oficina ────────────────────────────────────── */
-function pintarHoy(d){
-  const rows=d?.por_pc||[]; const k=d?.kpis;
-  if(!rows.length){$("hoy").innerHTML='<div class="load">sin datos</div>';return;}
-  // Solo se arman los selectores si el usuario puede ver varias oficinas: al encargado ya se le
-  // dejaron fijos en la suya al validar la sesion, y repoblarlos acá los volvería a habilitar.
-  if(!PCS.length && scope?.puede_todas){ PCS=rows.map(r=>r.pc_codigo).filter(Boolean);
-    const o=PCS.map(p=>`<option value="${esc(p)}">${esc(p)}</option>`).join("");
-    $("fpc").innerHTML='<option value="">Todas las oficinas</option>'+o;
-    $("f-pc2").innerHTML='<option value="">Todas</option>'+o; }
+  if(!PCS.length && scope?.puede_todas && rows.length){
+    PCS=rows.map(r=>r.pc_codigo).filter(Boolean);
+    $("fpc").innerHTML='<option value="">Todas las oficinas</option>'+PCS.map(p=>`<option value="${esc(p)}">${esc(p)}</option>`).join("");
+  }
   const maxC=Math.max(...rows.map(r=>Number(r.cargas_monto)||0),1);
-  const est=e=>e==="SIN_ACTIVIDAD"?pill("sin actividad","dim"):e==="OK"?pill("activa","ok"):pill(e||"—","dim");
-  $("hoy").innerHTML=`<table><thead><tr>
-    <th class="l">Ofi</th><th class="l">Canal</th><th>Estado</th><th>Cargas</th><th>Monto</th>
-    <th></th><th>Retiros</th><th>Monto</th><th>Neto</th><th>Pend.</th><th>Err.</th></tr></thead><tbody>${
+  $("t-hoy").innerHTML=`<table><thead><tr>
+    <th class="l">Ofi</th><th class="l">Canal</th><th>Estado</th><th>Cargas</th><th>Monto</th><th></th>
+    <th>Retiros</th><th>Monto</th><th>Neto</th><th>Pend.</th><th>Err.</th></tr></thead><tbody>${
     rows.map(r=>`<tr>
-      <td class="pc">${esc(r.pc_codigo)}</td>
+      <td class="pc" onclick="filtrarPc('${esc(r.pc_codigo)}')">${esc(r.pc_codigo)}</td>
       <td class="l dim">${esc(r.nombre_publico||"—")}</td>
-      <td>${est(r.estado_operativo)}</td>
+      <td>${r.estado_operativo==="SIN_ACTIVIDAD"?pill("sin actividad","dim"):pill("activa","ok")}</td>
       <td class="num">${nf.format(r.cargas_count||0)}</td>
       <td class="num">${money(r.cargas_monto)}</td>
-      <td style="width:80px">${bar(Number(r.cargas_monto)||0,maxC,"ok")}</td>
+      <td style="width:70px">${barra(Number(r.cargas_monto)||0,maxC,"ok")}</td>
       <td class="num">${nf.format(r.retiros_count||0)}</td>
       <td class="num">${money(r.retiros_monto)}</td>
       <td class="num" style="color:${(Number(r.neto)||0)>=0?'var(--ok)':'var(--bad)'}">${money(r.neto)}</td>
       <td class="num">${Number(r.pendientes)?pill(r.pendientes,"warn"):'<span class="dim">0</span>'}</td>
       <td class="num">${Number(r.errores)?pill(r.errores,"bad"):'<span class="dim">0</span>'}</td>
-    </tr>`).join("")}</tbody>${k?`<tfoot><tr>
+    </tr>`).join("")}</tbody><tfoot><tr>
       <td>Total</td><td></td><td></td>
-      <td class="num">${nf.format(k.cargas_count||0)}</td><td class="num">${money(k.cargas_monto)}</td><td></td>
-      <td class="num">${nf.format(k.retiros_count||0)}</td><td class="num">${money(k.retiros_monto)}</td>
-      <td class="num">${money(k.neto)}</td>
-      <td class="num">${nf.format(k.pendientes_portal||0)}</td>
-      <td class="num">${nf.format(k.errores||0)}</td></tr></tfoot>`:""}</table>`;
+      <td class="num">${nf.format(kk.cargas_count||0)}</td><td class="num">${money(kk.cargas_monto)}</td><td></td>
+      <td class="num">${nf.format(kk.retiros_count||0)}</td><td class="num">${money(kk.retiros_monto)}</td>
+      <td class="num">${money(kk.neto)}</td><td class="num">${nf.format(kk.pendientes_portal||0)}</td>
+      <td class="num">${nf.format(kk.errores||0)}</td></tr></tfoot></table>`;
+
+  const errs=(D.vivo?.errores||[]).slice(0,12);
+  $("t-err").innerHTML=errs.length?`<table><thead><tr><th class="l">Usuario</th><th class="l">Tipo</th>
+    <th>Monto</th><th class="l">Estado</th><th class="l">Detalle</th></tr></thead><tbody>${
+    errs.map(e=>`<tr><td class="l mono">${esc(e.usuario||"—")}</td>
+      <td class="l">${pill((e.tipo||"?").toLowerCase(),e.tipo==="CARGA"?"ok":"warn")}</td>
+      <td class="num">${money(e.monto)}</td>
+      <td class="l">${pill((e.estado||"—").toLowerCase(),"bad")}</td>
+      <td class="l dim" style="max-width:520px;overflow:hidden;text-overflow:ellipsis">${esc((e.notas||"").slice(0,120))}</td>
+    </tr>`).join("")}</tbody></table>`:'<div class="load">Sin errores registrados hoy.</div>';
 }
 
-/* ── usuarios perdidos ──────────────────────────────────── */
-function pintarEmbudo(d){
-  if(!d||d.ok!==true){$("emb-kpi").innerHTML='<div class="load">sin datos</div>';return;}
-  EMB=d;
-  const t=d.totales||{};
-  const pct=t.usuarios?Math.round(100*t.perdidos/t.usuarios):0;
-  const kp=(v,k,s,col)=>`<div class="kp"><div class="v"${col?` style="color:${col}"`:""}>${v}</div>
-      <div class="k">${k}</div>${s?`<div class="s">${s}</div>`:""}</div>`;
-  $("emb-kpi").innerHTML=
-     kp(nf.format(t.usuarios||0),"entraron al portal")
-   + kp(nf.format(t.completaron||0),"completaron una operación",'',"var(--ok)")
-   + kp(nf.format(t.perdidos||0),"nunca completaron",pct+"% del total","var(--bad)")
-   + kp(nf.format(t.un_solo_intento||0),"un solo intento y no volvieron",'',"var(--warn)");
+/* ── DINERO ───────────────────────────────────────────── */
+function pintarDin(){
+  const b=D.bil||{}, t=b.totales||{}, pcs=b.por_oficina||[];
+  $("k-bil").innerHTML=
+     kp(money(t.saldo_total),"saldo total","en billeteras activas","var(--ac)")
+   + kp(nf.format(t.activas||0),"billeteras activas","de "+nf.format(t.billeteras||0))
+   + kp(nf.format(t.sin_chunior||0),"sin vincular a Chunior","",t.sin_chunior>0?"var(--warn)":"")
+   + kp(pcs.length,"oficinas con billeteras");
+  const max=Math.max(...pcs.map(r=>Number(r.saldo)||0),1);
+  $("t-bilpc").innerHTML=`<table><thead><tr><th class="l">Ofi</th><th>Saldo</th><th></th>
+    <th>Activas</th><th>Totales</th><th>Sin Chunior</th></tr></thead><tbody>${
+    pcs.map(r=>`<tr>
+      <td class="pc" onclick="filtrarPc('${esc(r.pc)}')">${esc(r.pc)}</td>
+      <td class="num">${money(r.saldo)}</td>
+      <td style="width:120px">${barra(Number(r.saldo)||0,max)}</td>
+      <td class="num">${nf.format(r.activas||0)}</td>
+      <td class="num dim">${nf.format(r.billeteras||0)}</td>
+      <td class="num">${Number(r.sin_chunior)?pill(r.sin_chunior,"warn"):'<span class="dim">0</span>'}</td>
+    </tr>`).join("")}</tbody><tfoot><tr><td>Total</td><td class="num">${money(t.saldo_total)}</td><td></td>
+      <td class="num">${nf.format(t.activas||0)}</td><td class="num">${nf.format(t.billeteras||0)}</td>
+      <td class="num">${nf.format(t.sin_chunior||0)}</td></tr></tfoot></table>`;
+  listaBil();
+}
+function listaBil(){
+  const L=(D.bil?.listado)||[], est=$("b-est").value, ord=$("b-ord").value, q=$("b-q").value.trim().toLowerCase();
+  let rows=L.filter(r=>{
+    if(est==="act" && !r.activa) return false;
+    if(est==="inact" && r.activa) return false;
+    if(q && !((r.nombre||"")+" "+(r.titular||"")+" "+(r.banco||"")+" "+(r.alias||"")).toLowerCase().includes(q)) return false;
+    return true;});
+  if(ord==="saldo") rows.sort((a,b)=>(Number(b.saldo)||0)-(Number(a.saldo)||0));
+  if(ord==="saldo_asc") rows.sort((a,b)=>(Number(a.saldo)||0)-(Number(b.saldo)||0));
+  if(ord==="pc") rows.sort((a,b)=>String(a.pc).localeCompare(String(b.pc))||(Number(b.saldo)||0)-(Number(a.saldo)||0));
+  $("b-count").textContent=`${nf.format(rows.length)} de ${nf.format(L.length)}`;
+  const max=Math.max(...rows.map(r=>Number(r.saldo)||0),1);
+  $("t-bil").innerHTML=rows.length?`<table><thead><tr><th class="l">Ofi</th><th class="l">Billetera</th>
+    <th class="l">Titular</th><th class="l">Banco</th><th>Saldo</th><th></th><th>Estado</th><th>Prio</th>
+    </tr></thead><tbody>${rows.slice(0,300).map(r=>`<tr>
+      <td class="pc" onclick="filtrarPc('${esc(r.pc)}')">${esc(r.pc)}</td>
+      <td class="l mono">${esc(r.nombre||"—")}</td>
+      <td class="l dim">${esc(r.titular||"—")}</td>
+      <td class="l dim">${esc(r.banco||"—")}</td>
+      <td class="num">${money(r.saldo)}</td>
+      <td style="width:90px">${barra(Number(r.saldo)||0,max,r.activa?"":"warn")}</td>
+      <td>${r.activa?pill("activa","ok"):pill("inactiva","dim")}</td>
+      <td class="num dim">${r.prioridad??"—"}</td>
+    </tr>`).join("")}</tbody></table>`:'<div class="load">Sin billeteras para ese filtro.</div>';
+}
+["b-est","b-ord"].forEach(i=>$(i).onchange=listaBil); $("b-q").oninput=listaBil;
 
-  const pcs=d.por_oficina||[];
+/* ── USUARIOS ─────────────────────────────────────────── */
+function pintarUsr(){
+  const d=D.emb||{}, t=d.totales||{}, pcs=d.por_oficina||[];
+  const pct=t.usuarios?Math.round(100*t.perdidos/t.usuarios):0;
+  $("k-emb").innerHTML=
+     kp(nf.format(t.usuarios||0),"entraron al portal")
+   + kp(nf.format(t.completaron||0),"completaron","","var(--ok)")
+   + kp(nf.format(t.perdidos||0),"nunca completaron",pct+"% del total","var(--bad)")
+   + kp(nf.format(t.un_solo_intento||0),"un intento y no volvieron","","var(--warn)");
   const maxP=Math.max(...pcs.map(r=>Number(r.perdidos)||0),1);
   const cls=v=>v>=35?"bad":v>=28?"warn":"ok";
-  $("emb-pc").innerHTML=`<table><thead><tr>
-    <th class="l">Ofi</th><th>Usuarios</th><th>Completaron</th><th>Perdidos</th><th></th>
-    <th>% perdido</th><th>1 intento</th><th>Solo chat</th><th>Solo rechazo</th>
-    <th>Resp. chat</th></tr></thead><tbody>${
-    pcs.map(r=>{const p=Number(r.pct_perdidos)||0;const rc=Number(r.resp_chat_med);
-     return `<tr>
-      <td class="pc">${esc(r.pc)}</td>
+  $("t-embpc").innerHTML=`<table><thead><tr><th class="l">Ofi</th><th>Usuarios</th><th>Completaron</th>
+    <th>Perdidos</th><th></th><th>%</th><th>1 intento</th><th>Solo chat</th><th>Resp. chat</th></tr></thead><tbody>${
+    pcs.map(r=>{const p=Number(r.pct_perdidos)||0,rc=Number(r.resp_chat_med);return `<tr>
+      <td class="pc" onclick="filtrarPc('${esc(r.pc)}')">${esc(r.pc)}</td>
       <td class="num">${nf.format(r.usuarios||0)}</td>
       <td class="num dim">${nf.format(r.completaron||0)}</td>
       <td class="num">${nf.format(r.perdidos||0)}</td>
-      <td style="width:70px">${bar(Number(r.perdidos)||0,maxP,cls(p))}</td>
+      <td style="width:70px">${barra(Number(r.perdidos)||0,maxP,cls(p))}</td>
       <td>${pill(p+"%",cls(p))}</td>
       <td class="num">${nf.format(r.un_solo_intento||0)}</td>
       <td class="num">${nf.format(r.solo_soporte||0)}</td>
-      <td class="num">${nf.format(r.solo_rechazo||0)}</td>
-      <td class="num">${isFinite(rc)?(rc>=10?pill(rc+" min","warn"):pill(rc+" min","ok")):'<span class="dim">—</span>'}</td>
-     </tr>`}).join("")}</tbody></table>`;
-
+      <td class="num">${isFinite(rc)?pill(rc+" min",rc>=10?"warn":"ok"):'<span class="dim">—</span>'}</td>
+    </tr>`}).join("")}</tbody></table>`;
   const lentas=pcs.filter(r=>Number(r.resp_chat_med)>=10).map(r=>r.pc);
-  $("emb-note").innerHTML = `De los <b>${nf.format(t.un_solo_intento||0)}</b> que hicieron una sola
-    solicitud y no volvieron, la enorme mayoría abrió un <b>chat de soporte</b>, no una carga: son
-    personas intentando entrar, no clientes que fallaron al operar.` +
-    (lentas.length?` Las oficinas con el chat más lento (<b>${lentas.join(", ")}</b>) son también
-    donde más se pierde — vale mirar si es causa o coincidencia.`:"");
-
-  renderLista();
+  $("n-emb").innerHTML=`De los <b>${nf.format(t.un_solo_intento||0)}</b> que hicieron una sola solicitud
+    y no volvieron, la enorme mayoría abrió un <b>chat de soporte</b>, no una carga: son personas
+    intentando entrar, no clientes que fallaron al operar.`+
+    (lentas.length?` Las oficinas con el chat más lento (<b>${lentas.join(", ")}</b>) son también donde
+    más se pierde — vale mirar si es causa o coincidencia.`:"");
+  listaEmb();
 }
-
-function renderLista(){
-  if(!EMB) return;
-  const L=EMB.listado||[];
-  const fp=$("f-pc2").value, ft=$("f-tipo").value, fd=$("f-dias").value,
-        q=$("f-txt").value.trim().toLowerCase();
+function listaEmb(){
+  const L=(D.emb?.listado)||[], ft=$("e-tipo").value, fd=$("e-dias").value, q=$("e-q").value.trim().toLowerCase();
   const rows=L.filter(r=>{
-    if(fp && r.pc!==fp) return false;
     if(ft && (r.tipo||"")!==ft) return false;
     const d=Number(r.dias)||0;
-    if(fd==="7" && d>7) return false;
-    if(fd==="30" && d>30) return false;
-    if(fd==="31+" && d<=30) return false;
+    if(fd==="7"&&d>7) return false; if(fd==="30"&&d>30) return false; if(fd==="31+"&&d<=30) return false;
     if(q && !((r.usuario||"").toLowerCase().includes(q)||(r.telefono||"").includes(q))) return false;
-    return true;
-  });
-  $("emb-count").textContent=`${nf.format(rows.length)} de ${nf.format(L.length)}`;
-  if(!rows.length){$("emb-list").innerHTML='<div class="load">Sin usuarios para ese filtro.</div>';return;}
-  $("emb-list").innerHTML=`<table><thead><tr>
-    <th class="l">Ofi</th><th class="l">Usuario</th><th class="l">Teléfono</th><th>Tipo</th>
-    <th>Estado</th><th class="l">Atendió</th><th>Respuesta</th><th>Sols.</th><th>Hace</th>
-    </tr></thead><tbody>${
-    rows.slice(0,400).map(r=>{const rm=Number(r.resp_min);
-      return `<tr>
+    return true;});
+  $("e-count").textContent=`${nf.format(rows.length)} de ${nf.format(L.length)}`;
+  $("t-emb").innerHTML=rows.length?`<table><thead><tr><th class="l">Ofi</th><th class="l">Usuario</th>
+    <th class="l">Teléfono</th><th>Tipo</th><th>Estado</th><th class="l">Atendió</th><th>Respuesta</th>
+    <th>Hace</th></tr></thead><tbody>${rows.slice(0,300).map(r=>{const rm=Number(r.resp_min);return `<tr>
       <td class="pc">${esc(r.pc)}</td>
       <td class="l mono">${esc(r.usuario)}</td>
       <td class="l mono dim">${esc(r.telefono||"—")}</td>
@@ -379,35 +451,39 @@ function renderLista(){
       <td>${String(r.estado||"").startsWith("RECHAZ")?pill("rechazada","bad"):`<span class="dim">${esc((r.estado||"—").toLowerCase())}</span>`}</td>
       <td class="l dim">${esc(r.operador||"—")}</td>
       <td class="num">${isFinite(rm)?(rm>=15?pill(rm+" min","warn"):rm+" min"):'<span class="dim">—</span>'}</td>
-      <td class="num dim">${r.solicitudes||1}</td>
       <td class="num">${Number(r.dias)===0?pill("hoy","info"):`<span class="dim">${r.dias} d</span>`}</td>
-    </tr>`}).join("")}</tbody></table>${rows.length>400?'<div class="load">Mostrando los 400 más recientes.</div>':''}`;
+    </tr>`}).join("")}</tbody></table>`:'<div class="load">Sin usuarios para ese filtro.</div>';
 }
-["f-pc2","f-tipo","f-dias"].forEach(i=>$(i).onchange=renderLista);
-$("f-txt").oninput=renderLista;
+["e-tipo","e-dias"].forEach(i=>$(i).onchange=listaEmb); $("e-q").oninput=listaEmb;
 
-/* ── captación ──────────────────────────────────────────── */
-function pintarCaptacion(d){
-  const el=$("cap");
-  const serie = d?.por_semana || d?.semanas || d?.series || null;
-  if(!Array.isArray(serie)||!serie.length){
-    el.innerHTML='<div class="load">La RPC de crecimiento no devolvió una serie semanal reconocible. '
-      +'Se puede ajustar para que entregue nuevos usuarios por semana y oficina.</div>';
-    return;
-  }
-  const keys=Object.keys(serie[0]);
-  el.innerHTML=`<table><thead><tr>${keys.map(k=>`<th class="${isNaN(Number(serie[0][k]))?'l':''}">${esc(k)}</th>`).join("")}</tr></thead>
-    <tbody>${serie.slice(0,60).map(r=>`<tr>${keys.map(k=>{
-      const v=r[k]; const n=Number(v);
-      return `<td class="${isNaN(n)?'l':'num'}">${isNaN(n)?esc(v??"—"):nf.format(n)}</td>`;
-    }).join("")}</tr>`).join("")}</tbody></table>`;
+/* ── ALERTAS ──────────────────────────────────────────── */
+function pintarAle(){
+  const c=D.crec||{}, al=c.alertas||[], k=c.kpis||{};
+  const sev=s=>({ALTA:"alta",MEDIA:"",BAJA:"baja"})[String(s||"").toUpperCase()]??"";
+  $("l-ale").innerHTML=al.length?al.map(a=>`<div class="alert ${sev(a.severidad)}">
+      <div style="min-width:60px"><span class="pc">${esc(a.pc_codigo||"—")}</span></div>
+      <div style="flex:1"><div class="t">${esc(a.tipo||"aviso")} · ${esc(a.severidad||"")}</div>
+        <div>${esc(a.mensaje||"")}</div></div>
+    </div>`).join(""):'<div class="load">Sin alertas. Todo en orden.</div>';
+  const b=$("badgeAle");
+  if(al.length){b.textContent=al.length;b.classList.remove("hidden");}else b.classList.add("hidden");
+  $("k-crec").innerHTML=
+     kp(nf.format(k.vinculados||0),"usuarios vinculados")
+   + kp(nf.format(k.pendientes_validacion||0),"pendientes de validación","",k.pendientes_validacion>0?"var(--warn)":"")
+   + kp(nf.format(k.conflictos_validacion||0),"conflictos","",k.conflictos_validacion>0?"var(--bad)":"")
+   + kp(nf.format(k.bonos_count||0),"bonos otorgados",money(k.bonos_monto))
+   + kp(nf.format(k.bonos_error||0),"bonos con error","",k.bonos_error>0?"var(--bad)":"")
+   + kp(nf.format(k.retiros_parciales_count||0),"retiros parciales",
+        k.retiros_parciales_diferencia?money(k.retiros_parciales_diferencia)+" de diferencia":"");
 }
 
-/* ── arranque ───────────────────────────────────────────── */
+/* ── arranque ─────────────────────────────────────────── */
 (async()=>{
   const t=localStorage.getItem(TOKEN_KEY)||"";
-  if(t && await validar(t)) cargar();
-  setInterval(()=>{ if(token) cargar(); }, 120000);
+  if(t && await validar(t)) abrir("op");
+  // Solo se refresca la pestaña que estás mirando: consultar las cuatro juntas hacía que se
+  // pisaran entre sí y la base cortaba por timeout.
+  setInterval(()=>{ if(token && TAB==="op") cargar("op",true); }, 120000);
 })();
 </script>
 </body>
