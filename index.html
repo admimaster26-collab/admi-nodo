@@ -36,7 +36,7 @@
 </head>
 <body>
 <div id="loginGate" class="login"><div class="loginBox"><h1>NODO ADMIN</h1><p>Panel maestro general multi-oficina.</p><label>Usuario</label><input id="loginUser" autocomplete="username"><label>Clave</label><input id="loginPass" type="password" autocomplete="current-password"><button class="primary" style="width:100%;margin-top:16px" onclick="adminLogin()">Ingresar</button><div id="loginMsg" class="loginMsg"></div></div></div>
-<div id="appView" class="app hidden"><aside><div class="brand"><h1>NODO ADMIN</h1><p>Administración general: oficinas, rutas públicas, aliases Chunior, workers, operadores, billeteras, solicitudes y métricas.</p></div><div id="adminInfo" class="adminInfo hidden"></div><div class="nav"><button class="navBtn active" data-section="dashboard" onclick="showSection('dashboard')">Dashboard <span class="badge" id="badgeDashboard">0</span></button><button class="navBtn" data-section="operacion-vivo" onclick="showSection('operacion-vivo')">Operación en vivo <span class="badge" id="badgeOperacionVivo">Live</span></button><button class="navBtn" data-section="crecimiento" onclick="showSection('crecimiento')">Crecimiento <span class="badge" id="badgeCrecimiento">Nuevo</span></button><button class="navBtn" data-section="mapa" onclick="showSection('mapa')">Mapa Maestro <span class="badge" id="badgeMapa">Nuevo</span></button><button class="navBtn" data-section="portal-rutas" onclick="showSection('portal-rutas')">Portal / Rutas <span class="badge" id="badgeRutas">0</span></button><button class="navBtn" data-section="aliases" onclick="showSection('aliases')">Aliases Chunior <span class="badge" id="badgeAliases">0</span></button><button class="navBtn" data-section="solicitudes" onclick="showSection('solicitudes')">Solicitudes <span class="badge" id="badgeSolicitudes">0</span></button><button class="navBtn" data-section="worker" onclick="showSection('worker')">Worker <span class="badge" id="badgeWorker">0</span></button><button class="navBtn" data-section="operadores" onclick="showSection('operadores')">Operadores <span class="badge" id="badgeOperadores">0</span></button><button class="navBtn" data-section="billeteras" onclick="showSection('billeteras')">Billeteras <span class="badge" id="badgeBilleteras">0</span></button><button class="navBtn" data-section="pcs" onclick="showSection('pcs')">Oficinas <span class="badge" id="badgePcs">0</span></button><button class="navBtn" data-section="historial" onclick="showSection('historial')">Historial Agente <span class="badge" id="badgeHistorial">CSV</span></button><button class="navBtn" data-section="config" onclick="showSection('config')">Configuración <span class="badge" id="badgeConfig">0</span></button></div></aside><main><div class="top"><div><h2 id="pageTitle">Dashboard</h2><p id="pageSub">Resumen general actualizado por oficina.</p></div><div class="top-actions"><select id="globalPc" onchange="cambiarOficinaAdmin()"></select><button class="blue" onclick="reloadAll(true)">Actualizar todo</button><button class="danger" onclick="adminLogout()">Cerrar sesión</button></div></div>
+<div id="appView" class="app hidden"><aside><div class="brand"><h1>NODO ADMIN</h1><p>Administración general: oficinas, rutas públicas, aliases Chunior, workers, operadores, billeteras, solicitudes y métricas.</p></div><div id="adminInfo" class="adminInfo hidden"></div><div class="nav"><button class="navBtn active" data-section="dashboard" onclick="showSection('dashboard')">Dashboard <span class="badge" id="badgeDashboard">0</span></button><button class="navBtn" data-section="operacion-vivo" onclick="showSection('operacion-vivo')">Operación en vivo <span class="badge" id="badgeOperacionVivo">Live</span></button><button class="navBtn" data-section="crecimiento" onclick="showSection('crecimiento')">Crecimiento <span class="badge" id="badgeCrecimiento">Nuevo</span></button><button class="navBtn" data-section="reconexion" onclick="showSection('reconexion')">Reconexión <span class="badge" id="badgeReconexion">0</span></button><button class="navBtn" data-section="mapa" onclick="showSection('mapa')">Mapa Maestro <span class="badge" id="badgeMapa">Nuevo</span></button><button class="navBtn" data-section="portal-rutas" onclick="showSection('portal-rutas')">Portal / Rutas <span class="badge" id="badgeRutas">0</span></button><button class="navBtn" data-section="aliases" onclick="showSection('aliases')">Aliases Chunior <span class="badge" id="badgeAliases">0</span></button><button class="navBtn" data-section="solicitudes" onclick="showSection('solicitudes')">Solicitudes <span class="badge" id="badgeSolicitudes">0</span></button><button class="navBtn" data-section="worker" onclick="showSection('worker')">Worker <span class="badge" id="badgeWorker">0</span></button><button class="navBtn" data-section="operadores" onclick="showSection('operadores')">Operadores <span class="badge" id="badgeOperadores">0</span></button><button class="navBtn" data-section="billeteras" onclick="showSection('billeteras')">Billeteras <span class="badge" id="badgeBilleteras">0</span></button><button class="navBtn" data-section="pcs" onclick="showSection('pcs')">Oficinas <span class="badge" id="badgePcs">0</span></button><button class="navBtn" data-section="historial" onclick="showSection('historial')">Historial Agente <span class="badge" id="badgeHistorial">CSV</span></button><button class="navBtn" data-section="config" onclick="showSection('config')">Configuración <span class="badge" id="badgeConfig">0</span></button></div></aside><main><div class="top"><div><h2 id="pageTitle">Dashboard</h2><p id="pageSub">Resumen general actualizado por oficina.</p></div><div class="top-actions"><select id="globalPc" onchange="cambiarOficinaAdmin()"></select><button class="blue" onclick="reloadAll(true)">Actualizar todo</button><button class="danger" onclick="adminLogout()">Cerrar sesión</button></div></div>
 <section id="section-dashboard" class="section active admin-v21-dashboard">
   <div class="v21-hero">
     <div>
@@ -54,7 +54,7 @@
   <div class="v21-filters">
     <div><label>Desde</label><input id="dash_from" type="date" onchange="adminV21Refresh()"></div>
     <div><label>Hasta</label><input id="dash_to" type="date" onchange="adminV21Refresh()"></div>
-    <div><label>Oficina</label><select id="dash_pc" onchange="adminV21Refresh()"><option value="">Todas</option><option>P1</option><option>P2</option><option>P3</option><option>P4</option><option>P5</option></select></div>
+    <div><label>Oficina</label><select id="dash_pc" onchange="tableroFiltrar()"><option value="">Todas</option></select></div>
     <div><label>Turno</label><select id="dash_turno" onchange="adminV21Refresh()"><option value="">Todos</option><option>TM</option><option>TT</option><option>TN</option></select></div>
     <div><label>Operador</label><select id="dash_operador" onchange="adminV21Refresh()"><option value="">Todos</option></select></div>
     <div><label>Buscar</label><input id="dash_search" oninput="adminV21RenderUltimasFiltradas()" placeholder="Usuario, operador, PC..."></div>
@@ -62,19 +62,81 @@
 
   <div id="v21Status" class="v21-status">Esperando datos...</div>
 
-  <div class="v21-kpis">
-    <div class="v21-kpi ok"><small>Cargas</small><strong id="v21CargaMonto">$0</strong><span id="v21CargaCount">0 operaciones</span></div>
-    <div class="v21-kpi retiro"><small>Retiros</small><strong id="v21RetiroMonto">$0</strong><span id="v21RetiroCount">0 operaciones</span></div>
-    <div class="v21-kpi neto"><small>Neto</small><strong id="v21Neto">$0</strong><span>cargas - retiros</span></div>
-    <div class="v21-kpi"><small>Total operaciones</small><strong id="v21TotalOps">0</strong><span>historial real</span></div>
-    <div class="v21-kpi warn"><small>Errores</small><strong id="v21Errores">0</strong><span>errores / reversas</span></div>
-    <div class="v21-kpi bono"><small>Bonos</small><strong id="v21BonosMonto">$0</strong><span id="v21BonosCount">0 otorgados</span></div>
-    <div class="v21-kpi"><small>Chats abiertos</small><strong id="v21ChatsAbiertos">0</strong><span id="v21ChatsSinResponder">0 sin responder</span></div>
-    <div class="v21-kpi"><small>Nuevos usuarios</small><strong id="v21UsuariosNuevos">0</strong><span>rango filtrado</span></div>
+  <style>
+    /* Grilla y no flex: con flex-grow las ultimas de la fila se estiran al doble. */
+    .tb-online{display:grid;grid-template-columns:repeat(auto-fill,minmax(185px,1fr));gap:10px;margin:14px 0}
+    .tb-pc{background:#141a24;border:1px solid #222c3a;border-left:3px solid #3a4657;
+           border-radius:10px;padding:10px 12px;cursor:pointer;transition:.15s}
+    .tb-pc:hover{border-color:#3d5578;background:#182030}
+    .tb-pc.on{border-left-color:#28c76f}
+    .tb-pc.off{border-left-color:#5a6472;opacity:.62}
+    .tb-pc.sel{background:#1b2740;border-color:#4f7fd6}
+    .tb-pc .l1{display:flex;align-items:center;justify-content:space-between;gap:6px}
+    .tb-pc b{font-size:15px;letter-spacing:.4px}
+    .tb-pc .dot{width:8px;height:8px;border-radius:50%;background:#5a6472;flex:0 0 auto}
+    .tb-pc.on .dot{background:#28c76f;box-shadow:0 0 0 3px rgba(40,199,111,.16)}
+    .tb-pc .op{font-size:12.5px;color:#cfd8e6;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .tb-pc .sub{font-size:11px;color:#7c8798;margin-top:2px}
+    .tb-pc .ops{font-size:11.5px;color:#93a1b5;margin-top:5px}
+    .tb-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:14px 0}
+    .tb-k{background:#141a24;border:1px solid #222c3a;border-radius:10px;padding:11px 13px}
+    .tb-k small{display:block;color:#8b98ab;font-size:11px;text-transform:uppercase;letter-spacing:.5px}
+    .tb-k strong{display:block;font-size:21px;margin:4px 0 1px;color:#eaf0f8}
+    .tb-k span{font-size:11.5px;color:#7c8798}
+    .tb-k.ok strong{color:#28c76f} .tb-k.ret strong{color:#ff6b6b}
+    .tb-k.neto strong{color:#4f9dff} .tb-k.bono strong{color:#ffb020}
+    .tb-k.pend strong{color:#e8eef7} .tb-k.pend.hay strong{color:#ffb020}
+    .tb-k.pend.viejo strong{color:#ff6b6b} .tb-k.pend.viejo{border-color:#5c2b2b}
+    .tb-pc .pend{font-size:11.5px;margin-top:3px;color:#ffb020}
+    .tb-pc .pend.viejo{color:#ff6b6b;font-weight:600}
+    .tb-tabla td.num,.tb-tabla th.num{text-align:right}
+    .tb-tabla tfoot td{font-weight:700;border-top:2px solid #2b3646;background:#161d28}
+    .tb-tabla tr.fila-pc{cursor:pointer}
+    .tb-tabla tr.fila-pc:hover{background:#1a2230}
+  </style>
+
+  <div class="card v21-card-block">
+    <div class="card-h">
+      <h3>NODO en línea</h3>
+      <span class="muted">Late cada 45 s · verde = panel abierto ahora. Clic en una oficina para filtrar todo el tablero.</span>
+    </div>
+    <div class="card-b"><div id="tbOnline" class="tb-online"><span class="muted">Cargando…</span></div></div>
+  </div>
+
+  <div class="tb-kpis">
+    <div class="tb-k"><small>PCs en línea</small><strong id="tbOnlineN">0</strong><span id="tbOnlineSub">de 0 oficinas</span></div>
+    <div class="tb-k ok"><small>Cargas</small><strong id="tbCargas">$0</strong><span id="tbCargasN">0 operaciones</span></div>
+    <div class="tb-k ret"><small>Retiros</small><strong id="tbRetiros">$0</strong><span id="tbRetirosN">0 operaciones</span></div>
+    <div class="tb-k neto"><small>Neto</small><strong id="tbNeto">$0</strong><span>cargas − retiros</span></div>
+    <div class="tb-k"><small>Operaciones</small><strong id="tbOps">0</strong><span id="tbOpsSub">total del período</span></div>
+    <div class="tb-k pend"><small>Pendientes ahora</small><strong id="tbPend">0</strong><span id="tbPendSub">sin atender</span></div>
+    <div class="tb-k"><small>Ingresos nuevos</small><strong id="tbNuevos">0</strong><span id="tbNuevosSub">0 vinculados</span></div>
+    <div class="tb-k bono"><small>Bonos</small><strong id="tbBonos">$0</strong><span id="tbBonosN">0 otorgados</span></div>
+    <div class="tb-k warn"><small>Errores</small><strong id="v21Errores">0</strong><span>errores / reversas</span></div>
+    <div class="tb-k"><small>Chats abiertos</small><strong id="v21ChatsAbiertos">0</strong><span id="v21ChatsSinResponder">0 sin responder</span></div>
   </div>
 
   <div class="card v21-card-block">
-    <div class="card-h"><h3>Estado por oficina</h3><span class="muted">Semáforo por actividad, errores, pendientes y billetera en portal</span></div>
+    <div class="card-h">
+      <h3>Detalle por oficina</h3>
+      <span class="muted" id="tbPeriodo"></span>
+    </div>
+    <div class="tableWrap">
+      <table class="v21-table tb-tabla">
+        <thead><tr>
+          <th>Oficina</th><th>Operador</th><th>Estado</th><th class="num">Pendientes</th>
+          <th class="num">Ops</th><th class="num">Cargas</th><th class="num">$ cargas</th>
+          <th class="num">Retiros</th><th class="num">$ retiros</th><th class="num">Neto</th>
+          <th class="num">Nuevos</th><th class="num">Bonos</th>
+        </tr></thead>
+        <tbody id="tbBody"></tbody>
+        <tfoot id="tbFoot"></tfoot>
+      </table>
+    </div>
+  </div>
+
+  <div class="card v21-card-block">
+    <div class="card-h"><h3>Semáforo por oficina</h3><span class="muted">Actividad, errores, pendientes y billetera en portal</span></div>
     <div class="card-b"><div id="v21PcGrid" class="v21-pc-grid"></div></div>
   </div>
 
@@ -103,6 +165,12 @@
     <div id="ofiCards"></div><span id="stTotal"></span><span id="stPend"></span><span id="stReal"></span><span id="stErr"></span><span id="stWorkersOn"></span><span id="stWorkersSub"></span>
     <div id="dashTurnos"></div><div id="dashWorkers"></div><table><tbody id="ultimasSolicitudes"></tbody></table>
     <select id="dash_origen"><option value="">Todos</option></select>
+    <!-- KPIs viejos: los reemplazó el tablero de arriba, pero adminV21Refresh les sigue
+         escribiendo. Si no existen, tira y se corta el resto del dashboard. -->
+    <span id="v21CargaMonto"></span><span id="v21CargaCount"></span>
+    <span id="v21RetiroMonto"></span><span id="v21RetiroCount"></span>
+    <span id="v21Neto"></span><span id="v21TotalOps"></span>
+    <span id="v21BonosMonto"></span><span id="v21BonosCount"></span><span id="v21UsuariosNuevos"></span>
   </div>
 </section>
 
@@ -218,6 +286,44 @@
         <div class="card-h"><h3>Bonos por oficina</h3><span class="muted">primer ingreso bonificado</span></div>
         <div class="card-b"><div id="growthBonosPcMini" class="v21-list"></div></div>
       </div>
+    </div>
+  </div>
+</section>
+
+<section id="section-reconexion" class="section">
+  <div class="v21-hero">
+    <div>
+      <div class="v21-eyebrow">NODO ADMIN · RECUPERACIÓN</div>
+      <h2>Reconexión por oficina</h2>
+      <p>Usuarios que entraron al portal y nunca completaron una operación. Los operadores los trabajan desde el CRM del panel; acá se ve cuánto avanzó cada oficina.</p>
+    </div>
+    <div class="v21-hero-actions"><button class="blue" onclick="rxAdmiCargar()">🔄 Actualizar</button></div>
+  </div>
+
+  <div class="tb-kpis">
+    <div class="tb-k"><small>Usuarios totales</small><strong id="rxUsuarios">0</strong><span>llegaron al portal</span></div>
+    <div class="tb-k ok"><small>Completaron</small><strong id="rxCompletaron">0</strong><span id="rxCompletaronPct">—</span></div>
+    <div class="tb-k ret"><small>Perdidos</small><strong id="rxPerdidos">0</strong><span id="rxPerdidosPct">—</span></div>
+    <div class="tb-k bono"><small>Perdidos con push</small><strong id="rxConPush">0</strong><span>se les puede avisar</span></div>
+    <div class="tb-k neto"><small>Ya trabajados</small><strong id="rxTocados">0</strong><span id="rxTocadosHoy">0 hoy</span></div>
+  </div>
+
+  <div class="card v21-card-block">
+    <div class="card-h">
+      <h3>Estado por oficina</h3>
+      <span class="muted">"Trabajados" es lo que los operadores marcaron desde el panel · "Vuelven" son los que no contestaron una vez y reaparecen a los 3 días</span>
+    </div>
+    <div class="tableWrap">
+      <table class="v21-table tb-tabla">
+        <thead><tr>
+          <th>Oficina</th><th class="num">Usuarios</th><th class="num">Completaron</th>
+          <th class="num">Perdidos</th><th class="num">% perdidos</th><th class="num">Con push</th>
+          <th class="num">Trabajados</th><th class="num">Contactados</th><th class="num">Recuperados</th>
+          <th class="num">Vuelven</th><th class="num">Cerrados</th><th class="num">Pendientes</th>
+        </tr></thead>
+        <tbody id="rxBody"></tbody>
+        <tfoot id="rxFoot"></tfoot>
+      </table>
     </div>
   </div>
 </section>
@@ -1859,6 +1965,327 @@ testResolverAlias = async function(){
   var _reset=window.resetOperadorForm; window.resetOperadorForm=function(){ try{ if(_reset) _reset();}catch(_e){} setChecks([]); syncField(); };
   function hookSave(){ var form=$("operadorForm"); var _save=window.saveOperador; if(!form||!_save||form.__moHooked) return; form.__moHooked=true; form.removeEventListener('submit',_save); form.addEventListener('submit', async function(e){ var rol=val("op_rol"); var usuario=(val("op_usuario")||'').toLowerCase().trim(); var extras=getChecks(); await _save(e); if(!esEncargadoRol(rol)||!usuario) return; var o=(OPS()||[]).find(function(x){return String(x.usuario||'').toLowerCase().trim()===usuario;}); if(!o) return; try{ var r=await supabaseClient.rpc('admin_operador_set_pcs',{p_session_token:requireAdminToken(),p_operador_id:Number(o.id),p_pcs:extras}); if(r&&r.error) toast('Oficinas: '+r.error.message,'err'); else toast('Oficinas del encargado guardadas','okb'); }catch(_e){} }); }
   if(document.readyState!=='loading') setTimeout(hookSave,900); else document.addEventListener('DOMContentLoaded',function(){setTimeout(hookSave,900);});
+})();
+</script>
+
+<script id="adminTableroJs">
+/* Tablero del dashboard: una sola llamada (admin_od_tablero_v1) devuelve una fila por
+   oficina; el filtro de arriba recalcula totales en el cliente, sin volver a la base.
+   Las oficinas salen de los datos, así que una PC nueva aparece sola. */
+(function(){
+  var DATA = null, cargando = false;
+  function $(id){ return document.getElementById(id); }
+  function money(v){ return Number(v||0).toLocaleString('es-AR',{style:'currency',currency:'ARS',maximumFractionDigits:0}); }
+  function nn(v){ return Number(v||0).toLocaleString('es-AR'); }
+  function esc(v){ return String(v==null?'':v).replace(/[&<>'"]/g,function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]; }); }
+
+  function hace(m){
+    if(m==null) return 'nunca';
+    if(m<1) return 'recién';
+    if(m<60) return 'hace '+m+' min';
+    if(m<1440) return 'hace '+Math.round(m/60)+' h';
+    return 'hace '+Math.round(m/1440)+' d';
+  }
+
+  window.tableroCargar = async function(){
+    if(cargando) return; cargando = true;
+    var tok; try{ tok = requireAdminToken(); }catch(_e){ cargando=false; return; }
+    try{
+      var desde = ($('dash_from')||{}).value || null;
+      var hasta = ($('dash_to')||{}).value   || null;
+      var r = await supabaseClient.rpc('admin_od_tablero_v1',
+                { p_session_token: tok, p_desde: desde, p_hasta: hasta });
+      if(r.error) throw new Error(r.error.message);
+      var d = r.data;
+      if(!d || d.ok !== true) throw new Error((d && d.error) || 'sin datos');
+      DATA = d;
+      sincronizarSelect();
+      tableroPintar();
+    }catch(e){
+      var c = $('tbOnline');
+      if(c) c.innerHTML = '<span class="muted">No se pudo cargar el tablero: '+esc(e.message||'')+'</span>';
+    }finally{ cargando = false; }
+  };
+
+  // El select de oficina se arma con lo que vino. Un encargado recibe solo su oficina,
+  // así que queda clavado ahí sin lógica extra en el cliente.
+  function sincronizarSelect(){
+    var sel = $('dash_pc'); if(!sel || !DATA) return;
+    var previo = sel.value;
+    var ofis = DATA.oficinas || [];
+    var html = '<option value="">Todas</option>';
+    ofis.forEach(function(o){
+      var et = o.pc + (o.oficina && o.oficina !== o.pc ? ' · ' + o.oficina : '');
+      html += '<option value="'+esc(o.pc)+'">'+esc(et)+'</option>';
+    });
+    sel.innerHTML = html;
+    if(!DATA.puede_todas && DATA.pc_forzada){
+      sel.value = DATA.pc_forzada; sel.disabled = true;
+    }else if(previo && ofis.some(function(o){ return o.pc === previo; })){
+      sel.value = previo;
+    }
+  }
+
+  function visibles(){
+    if(!DATA) return [];
+    var f = (($('dash_pc')||{}).value || '').toUpperCase();
+    return (DATA.oficinas||[]).filter(function(o){ return !f || o.pc === f; });
+  }
+
+  window.tableroPintar = function(){
+    if(!DATA) return;
+    var todas = DATA.oficinas || [], vis = visibles();
+    var f = (($('dash_pc')||{}).value || '').toUpperCase();
+
+    // Tiras de PCs: siempre TODAS, aunque haya filtro — es el estado general del NODO.
+    var strip = todas.map(function(o){
+      var cls = 'tb-pc ' + (o.online ? 'on' : 'off') + (f === o.pc ? ' sel' : '');
+      return '<div class="'+cls+'" onclick="tableroClickPc(\''+esc(o.pc)+'\')" title="'+
+             esc(o.pc+(o.oficina?' · '+o.oficina:''))+'">'+
+        '<div class="l1"><b>'+esc(o.pc)+'</b><span class="dot"></span></div>'+
+        '<div class="op">'+(o.operador ? '👤 '+esc(o.operador) : '<span style="color:#6b7686">sin operador</span>')+'</div>'+
+        '<div class="sub">'+(o.oficina ? esc(o.oficina)+' · ' : '')+esc(hace(o.hace_min))+'</div>'+
+        '<div class="ops">'+nn(o.ops_total)+' ops · '+money(o.neto)+'</div>'+
+        (o.pend_total ? '<div class="pend'+(o.pend_min>=120?' viejo':'')+'">⏳ '+nn(o.pend_total)+
+           ' pendiente'+(o.pend_total===1?'':'s')+' · '+esc(hace(o.pend_min))+'</div>' : '')+
+      '</div>';
+    }).join('');
+    var cont = $('tbOnline');
+    if(cont) cont.innerHTML = strip || '<span class="muted">Sin oficinas con actividad.</span>';
+
+    var T = {ops:0,cargas:0,cm:0,retiros:0,rm:0,bonos:0,bm:0,nc:0,nv:0,neto:0,
+             pe:0,pc:0,pr:0,ps:0,pmin:0};
+    vis.forEach(function(o){
+      T.ops += +o.ops_total||0; T.cargas += +o.cargas||0; T.cm += +o.cargas_monto||0;
+      T.retiros += +o.retiros||0; T.rm += +o.retiros_monto||0;
+      T.bonos += +o.bonos||0; T.bm += +o.bonos_monto||0;
+      T.nc += +o.nuevos_carga||0; T.nv += +o.nuevos_vinculo||0; T.neto += +o.neto||0;
+      T.pe += +o.pend_total||0; T.pc += +o.pend_carga||0;
+      T.pr += +o.pend_retiro||0; T.ps += +o.pend_soporte||0;
+      if((+o.pend_min||0) > T.pmin) T.pmin = +o.pend_min||0;   // la espera más larga
+    });
+
+    var onl = todas.filter(function(o){ return o.online; }).length;
+    function set(id,v){ var e=$(id); if(e) e.textContent = v; }
+    set('tbOnlineN', onl);
+    set('tbOnlineSub', 'de '+todas.length+' oficina'+(todas.length===1?'':'s'));
+    set('tbCargas', money(T.cm));   set('tbCargasN', nn(T.cargas)+' operaciones');
+    set('tbRetiros', money(T.rm));  set('tbRetirosN', nn(T.retiros)+' operaciones');
+    set('tbNeto', money(T.neto));
+    set('tbOps', nn(T.ops));
+    set('tbOpsSub', f ? 'en '+f : 'todas las oficinas');
+    set('tbNuevos', nn(T.nc));
+    set('tbNuevosSub', nn(T.nv)+' vinculados nuevos');
+    set('tbBonos', money(T.bm));    set('tbBonosN', nn(T.bonos)+' otorgados');
+    set('tbPend', nn(T.pe));
+    var det = [];
+    if(T.pc) det.push(T.pc+' carga'+(T.pc===1?'':'s'));
+    if(T.pr) det.push(T.pr+' retiro'+(T.pr===1?'':'s'));
+    if(T.ps) det.push(T.ps+' soporte');
+    set('tbPendSub', T.pe ? det.join(' · ')+' · más viejo '+hace(T.pmin) : 'nada sin atender');
+    var kp = document.querySelector('.tb-k.pend');
+    if(kp){ kp.classList.toggle('hay', T.pe > 0); kp.classList.toggle('viejo', T.pmin >= 120); }
+    set('tbPeriodo', DATA.desde === DATA.hasta ? DATA.desde : DATA.desde+' → '+DATA.hasta);
+
+    var body = $('tbBody');
+    if(body){
+      body.innerHTML = vis.length ? vis.map(function(o){
+        var est = o.online
+          ? '<span class="pill ok">EN LÍNEA</span>'
+          : '<span class="pill off">'+esc(hace(o.hace_min))+'</span>';
+        return '<tr class="fila-pc" onclick="tableroClickPc(\''+esc(o.pc)+'\')">'+
+          '<td><b>'+esc(o.pc)+'</b>'+(o.oficina && o.oficina!==o.pc ? '<br><span class="muted" style="font-size:11px">'+esc(o.oficina)+'</span>' : '')+'</td>'+
+          '<td>'+(o.operador ? esc(o.operador) : '<span class="muted">—</span>')+'</td>'+
+          '<td>'+est+'</td>'+
+          '<td class="num">'+(o.pend_total
+              ? '<span style="color:'+(o.pend_min>=120?'#ff6b6b':'#ffb020')+'" title="'+
+                nn(o.pend_carga)+' carga · '+nn(o.pend_retiro)+' retiro · '+nn(o.pend_soporte)+' soporte">'+
+                nn(o.pend_total)+'</span><br><span class="muted" style="font-size:10.5px">'+esc(hace(o.pend_min))+'</span>'
+              : '<span class="muted">—</span>')+'</td>'+
+          '<td class="num">'+nn(o.ops_total)+'</td>'+
+          '<td class="num">'+nn(o.cargas)+'</td>'+
+          '<td class="num">'+money(o.cargas_monto)+'</td>'+
+          '<td class="num">'+nn(o.retiros)+'</td>'+
+          '<td class="num">'+money(o.retiros_monto)+'</td>'+
+          '<td class="num" style="color:'+(o.neto>=0?'#28c76f':'#ff6b6b')+'">'+money(o.neto)+'</td>'+
+          '<td class="num" title="'+nn(o.nuevos_vinculo)+' vinculados nuevos">'+nn(o.nuevos_carga)+'</td>'+
+          '<td class="num">'+(o.bonos ? nn(o.bonos)+' · '+money(o.bonos_monto) : '<span class="muted">—</span>')+'</td>'+
+        '</tr>';
+      }).join('') : '<tr><td colspan="12" class="empty">Sin actividad en el período.</td></tr>';
+    }
+    var foot = $('tbFoot');
+    if(foot){
+      foot.innerHTML = vis.length ? '<tr><td colspan="3">TOTAL'+(f?' · '+esc(f):' · '+vis.length+' oficinas')+'</td>'+
+        '<td class="num">'+nn(T.pe)+'</td>'+
+        '<td class="num">'+nn(T.ops)+'</td><td class="num">'+nn(T.cargas)+'</td><td class="num">'+money(T.cm)+'</td>'+
+        '<td class="num">'+nn(T.retiros)+'</td><td class="num">'+money(T.rm)+'</td>'+
+        '<td class="num" style="color:'+(T.neto>=0?'#28c76f':'#ff6b6b')+'">'+money(T.neto)+'</td>'+
+        '<td class="num">'+nn(T.nc)+'</td><td class="num">'+nn(T.bonos)+' · '+money(T.bm)+'</td></tr>' : '';
+    }
+  };
+
+  window.tableroClickPc = function(pc){
+    var sel = $('dash_pc'); if(!sel || sel.disabled) return;
+    sel.value = (sel.value === pc) ? '' : pc;   // segundo clic = quitar el filtro
+    tableroFiltrar();
+  };
+
+  // El filtro repinta el tablero sin ir a la base y además refresca los paneles viejos
+  // (alertas, ranking, últimas ops), que sí necesitan la consulta con la oficina.
+  window.tableroFiltrar = function(){
+    tableroPintar();
+    if(typeof window.adminV21Refresh === 'function'){ try{ window.adminV21Refresh(); }catch(_e){} }
+  };
+
+  // Los botones Hoy/Ayer y los campos de fecha llaman a adminV21Refresh: enganchamos ahí
+  // para que el tablero se recargue con el mismo rango sin duplicar controles.
+  function engancharFechas(){
+    var orig = window.adminV21Refresh;
+    if(typeof orig !== 'function' || orig.__tbHooked) return false;
+    var wrap = function(){
+      var r; try{ r = orig.apply(this, arguments); }catch(e){ r = null; }
+      setTimeout(function(){ tableroCargar(); }, 60);
+      return r;
+    };
+    wrap.__tbHooked = true;
+    window.adminV21Refresh = wrap;
+    return true;
+  }
+
+  // Al abrir la página todavía no hay sesión (está el login), así que la primera carga
+  // se cuelga de reloadAll, que es lo que corre apenas entrás.
+  function engancharLogin(){
+    var orig = window.reloadAll;
+    if(typeof orig !== 'function' || orig.__tbHooked) return false;
+    var wrap = function(){
+      var r; try{ r = orig.apply(this, arguments); }catch(e){ r = null; }
+      setTimeout(function(){ tableroCargar(); }, 120);
+      return r;
+    };
+    wrap.__tbHooked = true;
+    window.reloadAll = wrap;
+    return true;
+  }
+
+  function arranque(){
+    if(!engancharFechas()) setTimeout(engancharFechas, 1200);
+    if(!engancharLogin()) setTimeout(engancharLogin, 1200);
+    tableroCargar();
+    setInterval(function(){
+      var s = document.getElementById('section-dashboard');
+      if(s && s.classList.contains('active')) tableroCargar();   // solo si estás mirándolo
+    }, 60000);
+  }
+  if(document.readyState !== 'loading') setTimeout(arranque, 1400);
+  else document.addEventListener('DOMContentLoaded', function(){ setTimeout(arranque, 1400); });
+})();
+</script>
+
+<script id="adminReconexionJs">
+/* Reconexión: cruza el embudo (cuántos se perdieron) con lo que los operadores ya
+   marcaron desde el CRM del panel, para ver el avance real por oficina. */
+(function(){
+  var cargando = false;
+  function $(id){ return document.getElementById(id); }
+  function nn(v){ return Number(v||0).toLocaleString('es-AR'); }
+  function esc(v){ return String(v==null?'':v).replace(/[&<>'"]/g,function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]; }); }
+
+  window.rxAdmiCargar = async function(){
+    if(cargando) return; cargando = true;
+    var tok; try{ tok = requireAdminToken(); }catch(_e){ cargando=false; return; }
+    try{
+      // limit 1: solo queremos los agregados por oficina, no el listado largo.
+      var res = await Promise.all([
+        supabaseClient.rpc('admin_od_embudo_usuarios_v1',
+          {p_session_token:tok, p_desde:null, p_hasta:null, p_pc_codigo:null, p_limit:1}),
+        supabaseClient.rpc('admin_od_reconexion_avance_v1', {p_session_token:tok})
+      ]);
+      if(res[0].error) throw new Error(res[0].error.message);
+      var emb = res[0].data || {};
+      if(emb.ok !== true) throw new Error(emb.error || 'sin datos del embudo');
+      // El avance es secundario: si falla, mostramos el embudo igual.
+      var av = (!res[1].error && res[1].data && res[1].data.ok === true) ? res[1].data : {oficinas:[]};
+
+      var work = {};
+      (av.oficinas||[]).forEach(function(o){ work[String(o.pc).toUpperCase()] = o; });
+
+      var T = emb.totales || {};
+      function set(id,v){ var e=$(id); if(e) e.textContent = v; }
+      var us = +T.usuarios||0, co = +T.completaron||0, pe = +T.perdidos||0;
+      set('rxUsuarios', nn(us));
+      set('rxCompletaron', nn(co));
+      set('rxCompletaronPct', us ? Math.round(100*co/us)+'% del total' : '—');
+      set('rxPerdidos', nn(pe));
+      set('rxPerdidosPct', us ? Math.round(100*pe/us)+'% del total' : '—');
+      set('rxConPush', nn(T.perdidos_con_push));
+
+      var tocados = 0, hoy = 0;
+      (av.oficinas||[]).forEach(function(o){ tocados += +o.tocados||0; hoy += +o.hoy||0; });
+      set('rxTocados', nn(tocados));
+      set('rxTocadosHoy', nn(hoy)+' hoy');
+      var badge = $('badgeReconexion');
+      if(badge) badge.textContent = nn(Math.max(0, pe - tocados));
+
+      var filas = emb.por_oficina || [];
+      var F = {us:0,co:0,pe:0,push:0,to:0,ct:0,re:0,vu:0,ce:0,pd:0};
+      var body = $('rxBody');
+      if(body){
+        body.innerHTML = filas.length ? filas.map(function(o){
+          var w = work[String(o.pc).toUpperCase()] || {};
+          var to=+w.tocados||0, ct=+w.contactados||0, re=+w.recuperados||0,
+              vu=+w.vuelven||0, ce=+w.cerrados||0;
+          var pend = Math.max(0, (+o.perdidos||0) - to);
+          F.us+=+o.usuarios||0; F.co+=+o.completaron||0; F.pe+=+o.perdidos||0;
+          F.push+=+o.con_push||0; F.to+=to; F.ct+=ct; F.re+=re; F.vu+=vu; F.ce+=ce; F.pd+=pend;
+          var pct = +o.pct_perdidos||0;
+          var color = pct>=40 ? '#ff6b6b' : (pct>=30 ? '#ffb020' : '#28c76f');
+          return '<tr>'+
+            '<td><b>'+esc(o.pc)+'</b></td>'+
+            '<td class="num">'+nn(o.usuarios)+'</td>'+
+            '<td class="num">'+nn(o.completaron)+'</td>'+
+            '<td class="num">'+nn(o.perdidos)+'</td>'+
+            '<td class="num" style="color:'+color+'">'+pct+'%</td>'+
+            '<td class="num">'+nn(o.con_push)+'</td>'+
+            '<td class="num">'+(to ? nn(to) : '<span class="muted">—</span>')+'</td>'+
+            '<td class="num">'+(ct ? nn(ct) : '<span class="muted">—</span>')+'</td>'+
+            '<td class="num" style="color:#28c76f">'+(re ? nn(re) : '<span class="muted">—</span>')+'</td>'+
+            '<td class="num">'+(vu ? nn(vu) : '<span class="muted">—</span>')+'</td>'+
+            '<td class="num">'+(ce ? nn(ce) : '<span class="muted">—</span>')+'</td>'+
+            '<td class="num"><b>'+nn(pend)+'</b></td>'+
+          '</tr>';
+        }).join('') : '<tr><td colspan="12" class="empty">Sin datos.</td></tr>';
+      }
+      var foot = $('rxFoot');
+      if(foot && filas.length){
+        foot.innerHTML = '<tr><td>TOTAL</td><td class="num">'+nn(F.us)+'</td><td class="num">'+nn(F.co)+'</td>'+
+          '<td class="num">'+nn(F.pe)+'</td><td class="num">'+(F.us?Math.round(100*F.pe/F.us):0)+'%</td>'+
+          '<td class="num">'+nn(F.push)+'</td><td class="num">'+nn(F.to)+'</td><td class="num">'+nn(F.ct)+'</td>'+
+          '<td class="num">'+nn(F.re)+'</td><td class="num">'+nn(F.vu)+'</td><td class="num">'+nn(F.ce)+'</td>'+
+          '<td class="num">'+nn(F.pd)+'</td></tr>';
+      }
+    }catch(e){
+      var b = $('rxBody');
+      if(b) b.innerHTML = '<tr><td colspan="12" class="empty">No se pudo cargar: '+esc(e.message||'')+'</td></tr>';
+    }finally{ cargando = false; }
+  };
+
+  // Se carga recién cuando entrás a la sección: son dos consultas pesadas.
+  function engancharNav(){
+    var orig = window.showSection;
+    if(typeof orig !== 'function' || orig.__rxHooked) return false;
+    var wrap = function(name){
+      var r; try{ r = orig.apply(this, arguments); }catch(e){ r = null; }
+      if(name === 'reconexion') setTimeout(function(){ rxAdmiCargar(); }, 80);
+      return r;
+    };
+    wrap.__rxHooked = true;
+    window.showSection = wrap;
+    return true;
+  }
+  if(document.readyState !== 'loading') setTimeout(engancharNav, 1500);
+  else document.addEventListener('DOMContentLoaded', function(){ setTimeout(engancharNav, 1500); });
 })();
 </script>
 
