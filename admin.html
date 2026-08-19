@@ -188,7 +188,11 @@ footer{color:var(--tx3);font-size:11.5px;border-top:1px solid var(--line);paddin
         <select id="e-tipo"><option value="">Todo tipo</option><option>SOPORTE</option><option>CARGA</option><option>RETIRO</option></select>
         <select id="e-dias"><option value="">Cualquier antigüedad</option><option value="7">Últimos 7 días</option>
           <option value="30">Últimos 30 días</option><option value="31+">Más de 30 días</option></select>
-        <input id="e-q" placeholder="Buscar usuario o teléfono" style="min-width:210px">
+        <select id="e-canal"><option value="">Cualquier canal</option>
+          <option value="push">Se les puede mandar push</option>
+          <option value="nopush">Solo por WhatsApp</option></select>
+        <input id="e-q" placeholder="Buscar usuario o teléfono" style="min-width:200px">
+        <button class="ctl" id="e-copy" title="Copia los teléfonos de la lista filtrada">Copiar teléfonos</button>
         <span class="count" id="e-count"></span>
       </div>
       <div class="tw" id="t-emb"></div></div>
@@ -287,7 +291,10 @@ async function cargar(t,forzar){
       D.vivo=v;D.dash=d;pintarOp();
     }
     if(t==="din"){ D.bil=await rpc("admin_od_billeteras_v1",{p_session_token:token,p_pc_codigo:pc}); pintarDin(); }
-    if(t==="usr"){ D.emb=await rpc("admin_od_embudo_usuarios_v1",{p_session_token:token,p_desde:null,p_hasta:null,p_pc_codigo:pc,p_limit:300}); pintarUsr(); }
+    if(t==="usr"){ // ventana de 90 días: da margen sobre el statement_timeout y alguien trabado
+                   // hace más de tres meses ya no es candidato a reconectar
+      const d90=new Date(Date.now()-90*864e5).toISOString();
+      D.emb=await rpc("admin_od_embudo_usuarios_v1",{p_session_token:token,p_desde:d90,p_hasta:null,p_pc_codigo:pc,p_limit:400}); pintarUsr(); }
     if(t==="ale"){ D.crec=await rpc("admin_od_crecimiento_resumen_v2",{p_session_token:token,p_desde:null,p_hasta:null,p_pc_codigo:pc}); pintarAle(); }
     CARGADO[t]=true;
   }catch(e){
@@ -408,20 +415,27 @@ function pintarUsr(){
      kp(nf.format(t.usuarios||0),"entraron al portal")
    + kp(nf.format(t.completaron||0),"completaron","","var(--ok)")
    + kp(nf.format(t.perdidos||0),"nunca completaron",pct+"% del total","var(--bad)")
-   + kp(nf.format(t.un_solo_intento||0),"un intento y no volvieron","","var(--warn)");
+   + kp(nf.format(t.un_solo_intento||0),"un intento y no volvieron","","var(--warn)")
+   + kp(nf.format(t.perdidos_con_push||0),"alcanzables por push",
+        Math.round(100*(t.perdidos_con_push||0)/(t.perdidos||1))+"% de los perdidos","var(--info)");
   const maxP=Math.max(...pcs.map(r=>Number(r.perdidos)||0),1);
   const cls=v=>v>=35?"bad":v>=28?"warn":"ok";
   $("t-embpc").innerHTML=`<table><thead><tr><th class="l">Ofi</th><th>Usuarios</th><th>Completaron</th>
-    <th>Perdidos</th><th></th><th>%</th><th>1 intento</th><th>Solo chat</th><th>Resp. chat</th></tr></thead><tbody>${
-    pcs.map(r=>{const p=Number(r.pct_perdidos)||0,rc=Number(r.resp_chat_med);return `<tr>
+    <th>Perdidos</th><th></th><th>%</th><th>1 intento</th><th>Con teléfono</th><th>Con push</th>
+    <th>Resp. chat</th></tr></thead><tbody>${
+    pcs.map(r=>{const p=Number(r.pct_perdidos)||0,rc=Number(r.resp_chat_med);
+      const cp=Number(r.con_push)||0, per=Number(r.perdidos)||0;
+      const pctPush=per?Math.round(100*cp/per):0;
+      return `<tr>
       <td class="pc" onclick="filtrarPc('${esc(r.pc)}')">${esc(r.pc)}</td>
       <td class="num">${nf.format(r.usuarios||0)}</td>
       <td class="num dim">${nf.format(r.completaron||0)}</td>
-      <td class="num">${nf.format(r.perdidos||0)}</td>
-      <td style="width:70px">${barra(Number(r.perdidos)||0,maxP,cls(p))}</td>
+      <td class="num">${nf.format(per)}</td>
+      <td style="width:70px">${barra(per,maxP,cls(p))}</td>
       <td>${pill(p+"%",cls(p))}</td>
       <td class="num">${nf.format(r.un_solo_intento||0)}</td>
-      <td class="num">${nf.format(r.solo_soporte||0)}</td>
+      <td class="num dim">${nf.format(r.con_telefono||0)}</td>
+      <td class="num">${cp?pill(cp+" · "+pctPush+"%",pctPush>=25?"info":"dim"):'<span class="dim">0</span>'}</td>
       <td class="num">${isFinite(rc)?pill(rc+" min",rc>=10?"warn":"ok"):'<span class="dim">—</span>'}</td>
     </tr>`}).join("")}</tbody></table>`;
   const lentas=pcs.filter(r=>Number(r.resp_chat_med)>=10).map(r=>r.pc);
@@ -432,21 +446,28 @@ function pintarUsr(){
     más se pierde — vale mirar si es causa o coincidencia.`:"");
   listaEmb();
 }
+let EMB_FILTRADO=[];
 function listaEmb(){
-  const L=(D.emb?.listado)||[], ft=$("e-tipo").value, fd=$("e-dias").value, q=$("e-q").value.trim().toLowerCase();
+  const L=(D.emb?.listado)||[], ft=$("e-tipo").value, fd=$("e-dias").value,
+        fc=$("e-canal").value, q=$("e-q").value.trim().toLowerCase();
   const rows=L.filter(r=>{
     if(ft && (r.tipo||"")!==ft) return false;
     const d=Number(r.dias)||0;
     if(fd==="7"&&d>7) return false; if(fd==="30"&&d>30) return false; if(fd==="31+"&&d<=30) return false;
+    if(fc==="push" && !r.push) return false;
+    if(fc==="nopush" && r.push) return false;
     if(q && !((r.usuario||"").toLowerCase().includes(q)||(r.telefono||"").includes(q))) return false;
     return true;});
-  $("e-count").textContent=`${nf.format(rows.length)} de ${nf.format(L.length)}`;
+  EMB_FILTRADO=rows;
+  const conTel=rows.filter(r=>r.telefono).length;
+  $("e-count").textContent=`${nf.format(rows.length)} de ${nf.format(L.length)} · ${nf.format(conTel)} con teléfono`;
   $("t-emb").innerHTML=rows.length?`<table><thead><tr><th class="l">Ofi</th><th class="l">Usuario</th>
-    <th class="l">Teléfono</th><th>Tipo</th><th>Estado</th><th class="l">Atendió</th><th>Respuesta</th>
-    <th>Hace</th></tr></thead><tbody>${rows.slice(0,300).map(r=>{const rm=Number(r.resp_min);return `<tr>
+    <th class="l">Teléfono</th><th>Canal</th><th>Tipo</th><th>Estado</th><th class="l">Atendió</th>
+    <th>Respuesta</th><th>Hace</th></tr></thead><tbody>${rows.slice(0,400).map(r=>{const rm=Number(r.resp_min);return `<tr>
       <td class="pc">${esc(r.pc)}</td>
       <td class="l mono">${esc(r.usuario)}</td>
       <td class="l mono dim">${esc(r.telefono||"—")}</td>
+      <td>${r.push?pill("push","info"):(r.app?pill("app","dim"):pill("whatsapp","dim"))}</td>
       <td>${r.tipo==="SOPORTE"?pill("chat","dim"):pill((r.tipo||"?").toLowerCase(),r.tipo==="CARGA"?"ok":"warn")}</td>
       <td>${String(r.estado||"").startsWith("RECHAZ")?pill("rechazada","bad"):`<span class="dim">${esc((r.estado||"—").toLowerCase())}</span>`}</td>
       <td class="l dim">${esc(r.operador||"—")}</td>
@@ -454,7 +475,17 @@ function listaEmb(){
       <td class="num">${Number(r.dias)===0?pill("hoy","info"):`<span class="dim">${r.dias} d</span>`}</td>
     </tr>`}).join("")}</tbody></table>`:'<div class="load">Sin usuarios para ese filtro.</div>';
 }
-["e-tipo","e-dias"].forEach(i=>$(i).onchange=listaEmb); $("e-q").oninput=listaEmb;
+["e-tipo","e-dias","e-canal"].forEach(i=>$(i).onchange=listaEmb); $("e-q").oninput=listaEmb;
+// Copia la lista filtrada lista para pegar: sirve para armar la tanda de una oficina.
+$("e-copy").onclick=async()=>{
+  const t=EMB_FILTRADO.filter(r=>r.telefono)
+    .map(r=>[r.pc,r.usuario,r.telefono,r.push?"push":"whatsapp",r.dias+" d"].join("\t")).join("\n");
+  if(!t){ $("e-copy").textContent="Nada para copiar"; setTimeout(()=>$("e-copy").textContent="Copiar teléfonos",1600); return; }
+  try{ await navigator.clipboard.writeText(t);
+    $("e-copy").textContent="✓ "+EMB_FILTRADO.filter(r=>r.telefono).length+" copiados";
+  }catch(e){ $("e-copy").textContent="No se pudo copiar"; }
+  setTimeout(()=>$("e-copy").textContent="Copiar teléfonos",1800);
+};
 
 /* ── ALERTAS ──────────────────────────────────────────── */
 function pintarAle(){
