@@ -104,7 +104,8 @@
   </div>
 
   <div class="tb-kpis">
-    <div class="tb-k"><small>PCs en línea</small><strong id="tbOnlineN">0</strong><span id="tbOnlineSub">de 0 oficinas</span></div>
+    <!-- Cuenta OFICINAS, no paneles: una oficina puede tener dos maquinas abiertas. -->
+    <div class="tb-k"><small>Oficinas en línea</small><strong id="tbOnlineN">0</strong><span id="tbOnlineSub">de 0 oficinas</span></div>
     <div class="tb-k ok"><small>Cargas</small><strong id="tbCargas">$0</strong><span id="tbCargasN">0 operaciones</span></div>
     <div class="tb-k ret"><small>Retiros</small><strong id="tbRetiros">$0</strong><span id="tbRetirosN">0 operaciones</span></div>
     <div class="tb-k neto"><small>Neto</small><strong id="tbNeto">$0</strong><span>cargas − retiros</span></div>
@@ -2167,8 +2168,16 @@ testResolverAlias = async function(){
       return '<div class="'+cls+'" onclick="tableroClickPc(\''+esc(o.pc)+'\')" title="'+
              esc(o.pc+(o.oficina?' · '+o.oficina:''))+'">'+
         '<div class="l1"><b>'+esc(o.pc)+'</b><span class="dot"></span></div>'+
-        '<div class="op">'+(o.operador ? '👤 '+esc(o.operador) : '<span style="color:#6b7686">sin operador</span>')+'</div>'+
+        // Una oficina puede tener MAS DE UN panel abierto (MOR/P6 tiene dos). Se muestra el
+        // que latio mas recien y se avisa cuantos hay: antes se pisaban entre si en la misma
+        // fila y el tablero mostraba a uno al azar, tapando al otro.
+        '<div class="op">'+(o.operador ? '👤 '+esc(o.operador) : '<span style="color:#6b7686">sin operador</span>')+
+          ((+o.paneles_online||0) > 1
+            ? ' <span style="color:#8b949e" title="'+nn(o.paneles_online)+' paneles abiertos ahora en esta oficina">+'+nn(o.paneles_online-1)+'</span>'
+            : '')+'</div>'+
         '<div class="sub">'+(o.oficina ? esc(o.oficina)+' · ' : '')+esc(hace(o.hace_min))+'</div>'+
+        (o.versiones_distintas
+          ? '<div class="sub" style="color:#f0b429">⚠️ versiones distintas</div>' : '')+
         '<div class="ops">'+nn(o.ops_total)+' ops · '+money(o.neto)+'</div>'+
         (o.pend_total ? '<div class="pend'+(o.pend_min>=120?' viejo':'')+'">⏳ '+nn(o.pend_total)+
            ' pendiente'+(o.pend_total===1?'':'s')+' · '+esc(hace(o.pend_min))+'</div>' : '')+
@@ -2190,9 +2199,13 @@ testResolverAlias = async function(){
     });
 
     var onl = todas.filter(function(o){ return o.online; }).length;
+    // Paneles != oficinas: si en algun lado hay dos maquinas abiertas se aclara, porque si no
+    // el numero de arriba parece contradecir a las tarjetas.
+    var panOn = todas.reduce(function(a,o){ return a + (+o.paneles_online||0); }, 0);
     function set(id,v){ var e=$(id); if(e) e.textContent = v; }
     set('tbOnlineN', onl);
-    set('tbOnlineSub', 'de '+todas.length+' oficina'+(todas.length===1?'':'s'));
+    set('tbOnlineSub', 'de '+todas.length+' oficina'+(todas.length===1?'':'s')
+                     + (panOn > onl ? ' · '+panOn+' paneles' : ''));
     set('tbCargas', money(T.cm));   set('tbCargasN', nn(T.cargas)+' operaciones');
     set('tbRetiros', money(T.rm));  set('tbRetirosN', nn(T.retiros)+' operaciones');
     set('tbNeto', money(T.neto));
@@ -2632,16 +2645,20 @@ async function cargarMonitoreo(){
   const objetivo = vs.map(v=>String(v.version||"")).filter(v=>/^\d+\.\d+\.\d+$/.test(v))
                      .sort((a,b)=>a.localeCompare(b,undefined,{numeric:true})).pop() || null;
   const atrasadas = objetivo ? vs.filter(v=>v.online && String(v.version)!==objetivo) : [];
-  html += _monCard("Versión del panel por oficina",
+  // Una fila por MAQUINA, no por oficina: en MOR (P6) conviven dos, y cuando compartian fila
+  // se pisaban cada 45 s — el tablero mostraba una al azar y tapaba justo a la desactualizada.
+  // Por eso lo que hay que actualizar se nombra como puesto + operador: sin el operador no se
+  // sabe a cual de las dos maquinas hay que ir.
+  const quien = v => String(v.pc||"") + (v.operador ? " ("+v.operador+")" : "");
+  html += _monCard("Versión del panel por máquina",
     (objetivo
       ? (atrasadas.length
-          ? '<div class="notice">Faltan actualizar <b>'+atrasadas.length+'</b>: '+safe(atrasadas.map(v=>v.pc).join(", "))+'</div>'
-          : '<div class="notice">Todas las oficinas encendidas están en <b>'+safe(objetivo)+'</b>.</div>')
+          ? '<div class="notice">Faltan actualizar <b>'+atrasadas.length+'</b>: '+safe(atrasadas.map(quien).join(", "))+'</div>'
+          : '<div class="notice">Todos los paneles encendidos están en <b>'+safe(objetivo)+'</b>.</div>')
       : '<div class="notice">Ninguna oficina reporta versión real todavía. Aparece a partir de la 1.1.78 — antes el panel mandaba el texto fijo "V18".</div>')
-    + _monTabla(["Oficina","Versión","Operador","Visto","Estado"],
-        vs.map(v=>[safe(v.pc), safe(v.version), safe(v.operador||"—"), _monFecha(v.visto),
-                   v.online?pill("online","ok"):pill("apagada","warn")])),
-    "última semana");
+    + _monTabla(["Puesto","Operador","Versión","Visto"],
+        vs.map(v=>[safe(v.pc), safe(v.operador||"—"), safe(v.version), _monFecha(v.visto)])),
+    "paneles en línea ahora");
 
   // ── Blindaje: mientras haya llamadas sin secreto, prender el interruptor deja sin CRM a esas PCs.
   const bl = d.blindaje||{}, uso = bl.uso||[];
