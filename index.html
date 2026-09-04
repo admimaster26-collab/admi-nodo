@@ -2690,10 +2690,12 @@ async function cargarRecuperacion(){
   html += _monCard("Quién la trabaja",
     (!ded.length
       ? '<div class="notice">Nadie tocó la cola en 14 días.</div>'
-      : '<div class="notice">La franja es entre el primer y el último contacto del día: sirve para ver quién le dedica un rato y quién no la toca, <b>no</b> es un cronómetro de tiempo efectivo.</div>')
-    + _monTabla(["Operador","Oficina","Trabajados","Contactados","Descartados","Días activos","Franja"],
-        ded.map(x=>[safe(x.operador), safe(x.pc), safe(x.trabajados), safe(x.contactados),
-                    safe(x.descartados), safe(x.dias_activos), safe(x.franja)])),
+      : '<div class="notice">La hora típica es la franja en la que más contactos trabaja (no un promedio, así el turno noche no queda mal medido). Sirve para ver quién le dedica un rato y quién no la toca, <b>no</b> es un cronómetro de tiempo efectivo.<br>Mirá la relación entre contactados y descartados: descartar todo sin contactar a nadie es vaciar la cola, no trabajarla.</div>')
+    + _monTabla(["Operador","Oficina","Trabajados","Contactados","Descartados","Días activos","Hora típica"],
+        ded.map(x=>[safe(x.operador), safe(x.pc), safe(x.trabajados),
+                    (Number(x.contactados)===0 && Number(x.trabajados)>=10
+                      ? '<b style="color:#fca5a5">0</b>' : safe(x.contactados)),
+                    safe(x.descartados), safe(x.dias_activos), safe(x.hora_tipica)])),
     "últimos 14 días");
 
   // Los umbrales pintan en rojo lo que se lee mal de verdad: mensajes de menos de 25
