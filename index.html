@@ -1705,18 +1705,35 @@ testResolverAlias = async function(){
     if(nav && !document.querySelector('[data-section="altaofi"]')){
       nav.insertAdjacentHTML("beforeend",`<button class="navBtn" data-section="altaofi" onclick="showSection('altaofi')">🏢 Oficinas <span class="badge">todo en uno</span></button>`);
     }
-    const html=`<section id="section-altaofi" class="section"><div class="card"><div class="card-h"><h3>🏢 Alta de oficina nueva</h3></div><div class="card-b">
-      <div class="notice">Crea una oficina nueva <b>sin SQL</b>: ruta del portal + alias de Chunior. Cuando el operador entra por Chunior con su puesto, el panel resuelve solo a esta oficina.</div>
+    const html=`<section id="section-altaofi" class="section">
+    <div class="card"><div class="card-h"><h3>📋 Estado de las oficinas</h3><button class="blue small" onclick="altasChecklistCargar()">Actualizar</button></div><div class="card-b">
+      <div class="notice">Qué le falta a cada oficina para estar operativa. Verde = listo, rojo = falta.</div>
+      <div id="altas_checklist"><div class="notice">Abrí esta sección logueado para ver el estado.</div></div>
+    </div></div>
+    <div class="card"><div class="card-h"><h3>🏢 Alta de oficina nueva</h3></div><div class="card-b">
+      <div class="notice"><b>Qué hace este formulario:</b> crea la oficina, su link del portal y sus puestos de Chunior. Después de crearla quedan 3 cosas que <b>no</b> se hacen desde acá: las <b>billeteras</b> (se sincronizan desde el panel NODO), los <b>operadores</b> (sección Operadores) y el <b>token de Whaticket</b> (lo carga alguien con acceso a Supabase).</div>
+
+      <div style="font-weight:700;margin:14px 0 6px">1 · Identidad de la oficina</div>
       <div class="grid2">
-        <div class="row"><label>Código de oficina (oficina_id)</label><input id="ofi_oficina_id" placeholder="Ej: NUEVAPLATA"></div>
-        <div class="row"><label>PC / puesto (pc_codigo)</label><input id="ofi_pc_codigo" placeholder="Ej: P6"></div>
-        <div class="row"><label>Nombre público</label><input id="ofi_nombre" placeholder="Ej: Canal 6"></div>
+        <div class="row"><label>Código de la oficina</label><input id="ofi_pc_codigo" placeholder="Ej: P8"><span style="font-size:11px;color:#9aa">El código corto del sistema. Seguí la serie: la próxima es P8.</span></div>
+        <div class="row"><label>Nombre de la oficina</label><input id="ofi_oficina_id" placeholder="Ej: PEPEPLATA"><span style="font-size:11px;color:#9aa">Como se la conoce (el nombre del dueño/agencia). Sin espacios.</span></div>
+        <div class="row"><label>Nombre público (lo ve el jugador)</label><input id="ofi_nombre" placeholder="Ej: Canal 8"></div>
+      </div>
+
+      <div style="font-weight:700;margin:14px 0 6px">2 · Puestos de Chunior</div>
+      <div class="notice" style="border-color:rgba(59,130,246,.5)"><b>Un puesto por renglón.</b> Cada renglón es un puesto distinto de Chunior — o sea, un subagente con su propia sesión. Una oficina puede tener varios (varias PCs, cada operador en el suyo, con sus billeteras).<br>
+      Copiá el nombre <b>tal cual figura en Chunior</b>. <b>No escribas la versión "EN USO"</b>: el sistema la genera sola, y también aguanta que Chunior lo muestre con guiones, puntos o acentos.</div>
+      <div class="row"><label>Puestos (uno por renglón)</label><textarea id="ofi_aliases" rows="4" placeholder="PEPE GRAL&#10;PEPE CAJA 2&#10;PEPE CAJA 3"></textarea></div>
+
+      <div style="font-weight:700;margin:14px 0 6px">3 · Link del portal</div>
+      <div class="grid2">
         <div class="row"><label>Ruta pública (?r=)</label><input id="ofi_public_code" placeholder="rt-xxxxx (vacío = automática)"></div>
-        <div class="row"><label>Subdominio (producción, ej: p6)</label><input id="ofi_subdominio" placeholder="p6 → p6.tudominio.com"></div>
+        <div class="row"><label>Subdominio (producción, ej: p8)</label><input id="ofi_subdominio" placeholder="p8 → p8.tudominio.com"></div>
         <div class="row"><label>WhatsApp (opcional)</label><input id="ofi_whatsapp" placeholder="549..."></div>
         <div class="row"><label>Link plataforma (opcional)</label><input id="ofi_link" placeholder="https://www.bet-300.pw/"></div>
       </div>
-      <div class="row"><label>Nombres de puesto en Chunior (separados por coma o renglón)</label><textarea id="ofi_aliases" rows="3" placeholder="Ej: JUANCHO, JUANCHO EN USO, JGRAL"></textarea></div>
+
+      <div style="font-weight:700;margin:14px 0 6px">4 · Acceso al backoffice</div>
       <div class="grid2">
         <div class="row"><label>Usuario de agente (Casinodrex)</label><input id="ofi_agente_user" autocomplete="off" placeholder="usuario del agente"></div>
         <div class="row"><label>Clave de agente</label><input id="ofi_agente_pass" type="password" autocomplete="new-password" placeholder="clave del agente (queda oculta)"></div>
@@ -1749,10 +1766,16 @@ testResolverAlias = async function(){
     const pc=(typeof normPc==="function"?normPc(gv("ofi_pc_codigo")):gv("ofi_pc_codigo").toUpperCase());
     const nombre=gv("ofi_nombre")||pc;
     const code=gv("ofi_public_code")||randomCode();
-    if(!oficina_id||!pc){ out.innerHTML='<div class="notice" style="border-color:rgba(239,68,68,.7);color:#fca5a5">oficina_id y pc_codigo son obligatorios.</div>'; return; }
+    if(!oficina_id||!pc){ out.innerHTML='<div class="notice" style="border-color:rgba(239,68,68,.7);color:#fca5a5">Faltan el <b>código</b> y el <b>nombre</b> de la oficina (paso 1).</div>'; return; }
     const tok=(typeof requireAdminToken==="function")?requireAdminToken():null;
     const btn=$id("ofi_btn"); if(btn){btn.disabled=true;btn.textContent="Creando...";}
     try{
+      // 0) La oficina en sí. Sin esto no aparece en ningún selector del Admi.
+      {
+        const r=await supabaseClient.rpc("admin_general_crear_oficina",{p_session_token:tok,p_pc_codigo:pc,p_nombre:nombre,p_descripcion:oficina_id});
+        if(r.error) throw r.error;
+        if(r.data && r.data.ok===false) throw new Error(r.data.mensaje||"No se pudo crear la oficina");
+      }
       // 1) Ruta pública del portal
       await rpcRowsSafe("admin_general_guardar_ruta",{p_session_token:tok,p_id:null,p_pc_codigo:pc,p_public_code:code,p_nombre_publico:nombre,p_link_plataforma:gv("ofi_link"),p_whatsapp_numero:gv("ofi_whatsapp"),p_activo:true},async()=>{
         const r=await supabaseClient.from("landing_rutas_publicas").insert([{pc_codigo:pc,public_code:code,nombre_publico:nombre,link_plataforma:gv("ofi_link"),whatsapp_numero:gv("ofi_whatsapp"),activo:true}]);
@@ -1765,18 +1788,24 @@ testResolverAlias = async function(){
         try{ const _r=await supabaseClient.rpc("admin_general_set_subdominio",{p_session_token:tok,p_pc_codigo:pc,p_subdominio:_sub,p_host:""}); if(_r&&_r.error) _subErr=_r.error; }catch(_e){ _subErr=_e; }
         if(_subErr){ console.warn("subdominio",_subErr); toast("⚠️ Oficina creada, pero el SUBDOMINIO no se guardó: "+((_subErr&&_subErr.message)||_subErr),"err"); }
       }
-      // 2) Aliases: pc_codigo + oficina_id + cada nombre de puesto de Chunior
+      // 2) Puestos de Chunior. Cada renglón = un puesto (subagente); la variante
+      //    "EN USO" la genera la RPC. Los códigos (pc / nombre de oficina) van aparte:
+      //    no son puestos, son atajos para que el panel resuelva por código.
       const nombres=gv("ofi_aliases").split(/[\n,]+/).map(s=>s.trim()).filter(Boolean);
-      const aliasSet=[...new Set([pc, oficina_id, ...nombres].map(s=>s.toUpperCase()))];
-      let aok=0, aerr=0;
-      for(const a of aliasSet){
+      let aok=0, aerr=0, puestosDetalle=[];
+      if(nombres.length){
+        const r=await supabaseClient.rpc("admin_general_guardar_puestos_lote",{p_session_token:tok,p_pc_codigo:pc,p_nombres:nombres,p_observaciones:"Alta de oficina"});
+        if(r.error) throw r.error;
+        puestosDetalle=r.data||[];
+        puestosDetalle.forEach(function(x){ if(x.estado==="choque") aerr++; else aok++; });
+      }
+      for(const a of [...new Set([pc, oficina_id].map(s=>s.toUpperCase()))]){
         try{
-          await rpcRowsSafe("admin_general_guardar_alias",{p_session_token:tok,p_id:null,p_alias_codigo:a,p_oficina_id:oficina_id,p_pc_codigo_compat:pc,p_activa:true,p_observaciones:"Alta de oficina (wizard)"},async()=>{
-            const r=await supabaseClient.from("nodo_oficina_aliases").insert([{alias_codigo:a,oficina_id:oficina_id,pc_codigo_compat:pc,activa:true,observaciones:"Alta de oficina (wizard)"}]);
+          await rpcRowsSafe("admin_general_guardar_alias",{p_session_token:tok,p_id:null,p_alias_codigo:a,p_oficina_id:oficina_id,p_pc_codigo_compat:pc,p_activa:true,p_observaciones:"Código de la oficina (no es un puesto)"},async()=>{
+            const r=await supabaseClient.from("nodo_oficina_aliases").insert([{alias_codigo:a,oficina_id:oficina_id,pc_codigo_compat:pc,activa:true,observaciones:"Código de la oficina (no es un puesto)"}]);
             if(r.error) throw r.error; return [];
           });
-          aok++;
-        }catch(e){ aerr++; console.warn("alias",a,e.message||e); }
+        }catch(e){ console.warn("codigo",a,e.message||e); }
       }
       // Credenciales de agente (blindadas) si se cargaron
       const _au=gv("ofi_agente_user"), _ap=gv("ofi_agente_pass");
@@ -1786,10 +1815,20 @@ testResolverAlias = async function(){
       // Promo de primer ingreso (on/off)
       try{ await supabaseClient.rpc("admin_general_set_promo",{p_session_token:tok,p_pc_codigo:pc,p_activa:(gv("ofi_promo")==="1")}); }catch(_e){ console.warn("promo",_e); }
       const portalUrl=(gv("ofi_link")||"https://www.bet-300.pw/")+"?r="+code;
-      out.innerHTML=`<div class="item"><strong>✅ Oficina creada</strong><span>Oficina <b>${oficina_id}</b> · PC <b>${pc}</b> · ${aok} alias${aerr?(" ("+aerr+" con error)"):""}</span><span>Link del portal: <code>${portalUrl}</code></span><span>El operador entra por Chunior con su puesto y el panel resuelve solo a <b>${pc}</b>. Cargá las billeteras sincronizando desde el panel.</span></div>`;
-      if(typeof toast==="function") toast("Oficina creada","okb");
+      const _ico={creado:"✅",completado:"✅",ya_existia:"➖",repetido:"➖",choque:"⛔"};
+      const detHtml=puestosDetalle.length
+        ? `<div style="margin-top:8px">${puestosDetalle.map(function(x){
+            return `<div style="font-size:12px;margin:3px 0;color:${x.estado==="choque"?"#fca5a5":"#cbd5e1"}">${_ico[x.estado]||"•"} <b>${esc(x.puesto)}</b> — ${esc(x.detalle)}</div>`;
+          }).join("")}</div>`
+        : `<div style="margin-top:8px;font-size:12px;color:#fca5a5">⚠️ No cargaste ningún puesto. Sin al menos uno, el panel no sabe a qué oficina mandar las cargas.</div>`;
+      out.innerHTML=`<div class="item" style="display:block"><strong>${aerr?"⚠️ Oficina creada con avisos":"✅ Oficina creada"}</strong>
+        <span>Oficina <b>${esc(oficina_id)}</b> · código <b>${esc(pc)}</b> · ${aok} puesto(s)${aerr?(" · "+aerr+" con problema"):""}</span>
+        <span>Link del portal: <code>${esc(portalUrl)}</code></span>${detHtml}
+        <div style="margin-top:10px;font-size:12px;color:#9aa"><b>Falta todavía:</b> sincronizar las <b>billeteras</b> desde el panel NODO · dar de alta los <b>operadores</b> · pedir el <b>token de Whaticket</b>. Mirá el estado arriba.</div></div>`;
+      if(typeof toast==="function") toast(aerr?"Oficina creada con avisos":"Oficina creada",aerr?"err":"okb");
       try{ if(typeof fillPcSelects==="function") fillPcSelects(); }catch(_e){}
       try{ await oficinaListaCargar(); }catch(_e){}
+      try{ await altasChecklistCargar(); }catch(_e){}
     }catch(e){
       out.innerHTML=`<div class="notice" style="border-color:rgba(239,68,68,.7);color:#fca5a5">Error: ${(e.message||e)}</div>`;
       if(typeof toast==="function") toast("Error creando oficina: "+(e.message||e),"err");
@@ -1810,7 +1849,51 @@ testResolverAlias = async function(){
     try{ const pr=await supabaseClient.rpc("admin_get_proxies",{p_session_token:tok}); window._proxiesFull=(!pr.error && Array.isArray(pr.data))?pr.data:[]; }catch(_e){ window._proxiesFull=window._proxiesFull||[]; }
     // Estado de bases por oficina: creds de agente cargadas + CSV de agentes (conteo/última import).
     try{ const bs=await supabaseClient.rpc("admin_get_bases",{p_session_token:tok}); window._basesFull=(!bs.error && Array.isArray(bs.data))?bs.data:[]; }catch(_e){ window._basesFull=window._basesFull||[]; }
+    // Puestos AGRUPADOS: una fila por puesto real, no por cada variante escrita a mano.
+    try{ const ps=await supabaseClient.rpc("admin_general_puestos_list",{p_session_token:tok}); window._puestosAgrup=(!ps.error && Array.isArray(ps.data))?ps.data:[]; }catch(_e){ window._puestosAgrup=window._puestosAgrup||[]; }
     oficinaListaRender();
+  };
+
+  window.altasChecklistCargar=async function(){
+    const cont=$id("altas_checklist"); if(!cont) return;
+    const tok=(typeof requireAdminToken==="function")?requireAdminToken():null;
+    cont.innerHTML='<div class="notice">Cargando…</div>';
+    let filas=[];
+    try{
+      const {data,error}=await supabaseClient.rpc("admin_od_altas_v1",{p_session_token:tok});
+      if(error) throw error; filas=data||[];
+    }catch(e){ cont.innerHTML='<div class="notice" style="border-color:rgba(239,68,68,.7);color:#fca5a5">No se pudo cargar: '+esc(e.message||e)+'</div>'; return; }
+    if(!filas.length){ cont.innerHTML='<div class="notice">No hay oficinas cargadas.</div>'; return; }
+    const chip=function(ok,txt,aviso){
+      const col = ok ? 'background:rgba(34,197,94,.16);color:#4ade80;border:1px solid rgba(34,197,94,.4)'
+                     : (aviso ? 'background:rgba(234,179,8,.14);color:#fbbf24;border:1px solid rgba(234,179,8,.4)'
+                              : 'background:rgba(239,68,68,.14);color:#fca5a5;border:1px solid rgba(239,68,68,.4)');
+      return '<span style="display:inline-block;font-size:11px;font-weight:700;border-radius:999px;padding:3px 9px;margin:2px 2px 0 0;'+col+'">'+(ok?'✓':(aviso?'!':'✗'))+' '+txt+'</span>';
+    };
+    cont.innerHTML=filas.map(function(f){
+      const sinEnUso=(f.puestos_sin_en_uso||[]);
+      const falta=[];
+      if(!f.puestos) falta.push("puestos de Chunior");
+      if(!f.ruta) falta.push("link del portal");
+      if(!f.billeteras) falta.push("billeteras");
+      if(!f.operadores) falta.push("operadores");
+      if(!f.lineas_wt) falta.push("Whaticket (token en Supabase)");
+      return `<div class="item" style="display:block;margin-bottom:8px">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+          <strong>${esc(f.oficina)} · ${esc(f.nombre||"")}</strong>
+          <span style="font-size:12px;color:${falta.length?'#fca5a5':'#4ade80'}">${falta.length?('falta: '+esc(falta.join(", "))):'operativa'}</span>
+        </div>
+        <div style="margin-top:5px">
+          ${chip(f.puestos>0,'Puestos '+f.puestos)}
+          ${chip(f.ruta>0,'Portal')}
+          ${chip(f.billeteras>0,'Billeteras '+f.billeteras)}
+          ${chip(f.billeteras_uid>0,'Billeteras sincronizadas '+f.billeteras_uid, f.billeteras>0&&!f.billeteras_uid)}
+          ${chip(f.operadores>0,'Operadores '+f.operadores)}
+          ${chip(f.lineas_wt>0,'Whaticket '+(f.lineas_wt?(f.lineas_wt_ok+'/'+f.lineas_wt+' conectadas'):'—'), f.lineas_wt>0&&!f.lineas_wt_ok)}
+        </div>
+        ${sinEnUso.length?`<div style="margin-top:5px;font-size:12px;color:#fbbf24">! Sin su variante "EN USO": ${esc(sinEnUso.join(", "))} — mientras Chunior lo muestre ocupado, el panel no lo reconoce. Volvé a guardar el puesto para que se cree.</div>`:""}
+      </div>`;
+    }).join("");
   };
   window.oficinaListaRender=function(){
     const cont=$id("ofi_lista"); if(!cont) return;
@@ -1823,7 +1906,15 @@ testResolverAlias = async function(){
     if(!keys.length){ cont.innerHTML='<div class="notice">No hay oficinas configuradas todavía.</div>'; return; }
     cont.innerHTML=keys.map(function(pc){
       const g=grupos[pc], r=g.ruta;
-      const chips=g.aliases.map(function(a){ return `<span style="display:inline-flex;align-items:center;gap:4px;background:#222a3a;border-radius:6px;padding:3px 8px;margin:2px;font-size:12px">${esc(a.alias_codigo)} <a href="javascript:void 0" onclick="oficinaQuitarPuesto(${a.id})" title="Quitar puesto" style="color:#fca5a5;text-decoration:none">✕</a></span>`; }).join("");
+      // Un chip por PUESTO real (no por cada variante). Los códigos van aparte.
+      const _agr=(window._puestosAgrup||[]).filter(function(x){return String(x.pc_codigo||"").toUpperCase()===String(pc).toUpperCase();});
+      const _mkChip=function(p){
+        const extra=p.variantes>2?` <span style="color:#7c8698" title="${esc((p.todas||[]).join(', '))}">·${p.variantes}</span>`:"";
+        const warn=(p.tipo==="puesto"&&!p.tiene_en_uso)?` <span title="Le falta la variante EN USO" style="color:#fbbf24">!</span>`:"";
+        return `<span style="display:inline-flex;align-items:center;gap:4px;background:#222a3a;border-radius:6px;padding:3px 8px;margin:2px;font-size:12px">${esc(p.puesto)}${extra}${warn} <a href="javascript:void 0" onclick="oficinaQuitarPuesto('${esc(pc)}','${esc(p.base)}')" title="Quitar el puesto y todas sus variantes" style="color:#fca5a5;text-decoration:none">✕</a></span>`;
+      };
+      const chips=_agr.filter(function(p){return p.tipo==="puesto";}).map(_mkChip).join("");
+      const chipsCod=_agr.filter(function(p){return p.tipo==="codigo";}).map(_mkChip).join("");
       const ruta=r?`<code>${esc(r.public_code)}</code>${r.nombre_publico?(" · "+esc(r.nombre_publico)):""}`:'<span style="color:#fca5a5">sin ruta</span>';
       const sub=r&&r.subdominio?esc(String(r.subdominio)):"";
       const pcode=r?esc(r.public_code):"";
@@ -1832,7 +1923,7 @@ testResolverAlias = async function(){
       const _px=(window._proxiesFull||[]).find(function(x){return String(x.pc_codigo||"").toUpperCase()===String(pc).toUpperCase();});
       const pxOn=!!(_px && _px.enabled && _px.host);
       const pxHost=_px?esc(String(_px.host||"")):"", pxPort=_px?esc(String(_px.port||"")):"", pxUser=_px?esc(String(_px.username||"")):"", pxProto=(_px&&_px.protocol)?String(_px.protocol):"http";
-      const nPuestos=g.aliases.length;
+      const nPuestos=_agr.filter(function(p){return p.tipo==="puesto";}).length;
       // Estado de bases (admin_get_bases): creds de agente + CSV de agentes importado.
       const _bs=(window._basesFull||[]).find(function(x){return String(x.pc_codigo||"").toUpperCase()===String(pc).toUpperCase();});
       const agenteOk=!!(_bs && _bs.agente_cargado);
@@ -1851,31 +1942,37 @@ testResolverAlias = async function(){
         <div class="row" style="display:flex;gap:6px;align-items:center;margin:6px 0"><input id="ofi_au_${esc(g.pc)}" autocomplete="off" placeholder="${agenteOk?'agente cargado ✓ (reescribí para cambiar)':'usuario agente'}" style="flex:1"><input id="ofi_ap_${esc(g.pc)}" type="password" autocomplete="new-password" placeholder="${agenteOk?'clave guardada 🔒':'clave agente 🔒'}" style="flex:1"><button class="blue small" onclick="oficinaGuardarAgente('${esc(g.pc)}')">Guardar agente</button></div>
         <div class="row" style="display:flex;gap:6px;align-items:center;margin:6px 0;flex-wrap:wrap"><span style="font-size:12px;color:#9aa">🌐</span><select id="ofi_pxen_${esc(g.pc)}" style="width:100px"><option value="0" ${pxOn?'':'selected'}>Proxy off</option><option value="1" ${pxOn?'selected':''}>Proxy on</option></select><input id="ofi_pxhost_${esc(g.pc)}" value="${pxHost}" autocomplete="off" placeholder="host" style="flex:1;min-width:110px"><input id="ofi_pxport_${esc(g.pc)}" value="${pxPort}" autocomplete="off" placeholder="puerto" style="width:75px"><select id="ofi_pxproto_${esc(g.pc)}" style="width:85px"><option value="http" ${pxProto==='socks5'?'':'selected'}>http</option><option value="socks5" ${pxProto==='socks5'?'selected':''}>socks5</option></select><input id="ofi_pxuser_${esc(g.pc)}" value="${pxUser}" autocomplete="off" placeholder="usuario" style="width:110px"><input id="ofi_pxpass_${esc(g.pc)}" type="password" autocomplete="new-password" placeholder="${_px?'clave guardada 🔒 (dejá vacío para no cambiar)':'clave 🔒'}" style="width:110px"><button class="blue small" onclick="oficinaGuardarProxy('${esc(g.pc)}')">Guardar proxy</button></div>
         <div style="margin:6px 0;font-size:12px">🎁 Promo primer ingreso: <b style="color:${promoOn?'#22c55e':'#fca5a5'}">${promoOn?'ACTIVADA':'desactivada'}</b> <button class="small" onclick="oficinaTogglePromo('${esc(g.pc)}',${promoOn?0:1})">${promoOn?'Desactivar':'Activar'}</button></div>
-        <div style="margin:6px 0">Puestos: ${chips||'<span style="color:#fca5a5">ninguno</span>'}</div>
-        <div class="row" style="display:flex;gap:6px"><input id="ofi_addp_${esc(g.pc)}" placeholder="Nuevo puesto Chunior" style="flex:1"><button class="blue small" onclick="oficinaAgregarPuesto('${esc(g.pc)}','${esc(g.oficina_id)}')">+ Puesto</button></div>
+        <div style="margin:6px 0">Puestos de Chunior: ${chips||'<span style="color:#fca5a5">ninguno</span>'}</div>
+        ${chipsCod?`<div style="margin:6px 0;font-size:12px;color:#9aa">Códigos (no son puestos): ${chipsCod}</div>`:""}
+        <div class="row" style="display:flex;gap:6px"><input id="ofi_addp_${esc(g.pc)}" placeholder="Nuevo puesto de Chunior (sin 'EN USO')" style="flex:1"><button class="blue small" onclick="oficinaAgregarPuesto('${esc(g.pc)}','${esc(g.oficina_id)}')">+ Puesto</button></div>
       </div>`;
     }).join("");
   };
   window.oficinaAgregarPuesto=async function(pc, oficina_id){
-    const inp=$id("ofi_addp_"+pc); const a=((inp&&inp.value)||"").trim().toUpperCase();
+    const inp=$id("ofi_addp_"+pc); const a=((inp&&inp.value)||"").trim();
     if(!a) return;
     const tok=(typeof requireAdminToken==="function")?requireAdminToken():null;
     try{
-      await rpcRowsSafe("admin_general_guardar_alias",{p_session_token:tok,p_id:null,p_alias_codigo:a,p_oficina_id:oficina_id,p_pc_codigo_compat:pc,p_activa:true,p_observaciones:"Puesto agregado"},async()=>{
-        const r=await supabaseClient.from("nodo_oficina_aliases").insert([{alias_codigo:a,oficina_id:oficina_id,pc_codigo_compat:pc,activa:true,observaciones:"Puesto agregado"}]); if(r.error)throw r.error; return [];
-      });
-      if(typeof toast==="function") toast("Puesto agregado","okb");
+      // Guarda el puesto + su variante "EN USO" y frena si el nombre ya lo usa otra oficina.
+      const {data,error}=await supabaseClient.rpc("admin_general_guardar_puesto",{p_session_token:tok,p_pc_codigo:pc,p_nombre:a,p_observaciones:"Puesto agregado",p_activa:true});
+      if(error) throw error;
+      const r=(Array.isArray(data)?data[0]:data)||{};
+      if(inp) inp.value="";
+      if(typeof toast==="function") toast(r.mensaje||"Puesto agregado","okb");
       await oficinaListaCargar();
+      try{ await altasChecklistCargar(); }catch(_e){}
     }catch(e){ if(typeof toast==="function") toast("Error: "+(e.message||e),"err"); }
   };
-  window.oficinaQuitarPuesto=async function(id){
-    if(!confirm("¿Quitar este puesto?")) return;
+  window.oficinaQuitarPuesto=async function(pc, base){
+    if(!confirm("¿Quitar el puesto \""+base+"\" de "+pc+"?\n\nSe borran todas sus variantes (incluida la 'EN USO'). Si un operador está conectado a ese puesto en Chunior, sus cargas dejan de reconocerse.")) return;
     const tok=(typeof requireAdminToken==="function")?requireAdminToken():null;
     try{
-      const {error}=await supabaseClient.rpc("admin_general_eliminar_alias",{p_session_token:tok,p_id:Number(id)});
+      const {data,error}=await supabaseClient.rpc("admin_general_eliminar_puesto",{p_session_token:tok,p_pc_codigo:pc,p_base:base,p_borrar:true});
       if(error) throw error;
-      if(typeof toast==="function") toast("Puesto quitado","okb");
+      const r=(Array.isArray(data)?data[0]:data)||{};
+      if(typeof toast==="function") toast(r.mensaje||"Puesto quitado","okb");
       await oficinaListaCargar();
+      try{ await altasChecklistCargar(); }catch(_e){}
     }catch(e){ if(typeof toast==="function") toast("Error: "+(e.message||e),"err"); }
   };
   window.oficinaEliminar=async function(pc){
@@ -1958,7 +2055,7 @@ testResolverAlias = async function(){
   };
   const _oldShowSectionOfi=window.showSection;
   if(typeof _oldShowSectionOfi==="function"){
-    window.showSection=function(s){ _oldShowSectionOfi(s); if(s==="altaofi"){ ensureSectionOficina(); setTimeout(function(){ try{ oficinaListaCargar(); }catch(_e){} },100); } };
+    window.showSection=function(s){ _oldShowSectionOfi(s); if(s==="altaofi"){ ensureSectionOficina(); setTimeout(function(){ try{ oficinaListaCargar(); }catch(_e){} try{ altasChecklistCargar(); }catch(_e){} },100); } };
   }
   document.addEventListener("DOMContentLoaded",function(){ setTimeout(ensureSectionOficina,400); });
   setTimeout(ensureSectionOficina, 1500);
