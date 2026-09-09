@@ -1713,25 +1713,16 @@ testResolverAlias = async function(){
     <div class="card"><div class="card-h"><h3>🏢 Alta de oficina nueva</h3></div><div class="card-b">
       <div class="notice"><b>Qué hace este formulario:</b> crea la oficina, su link del portal y sus puestos de Chunior. Después de crearla quedan 3 cosas que <b>no</b> se hacen desde acá: las <b>billeteras</b> (se sincronizan desde el panel NODO), los <b>operadores</b> (sección Operadores) y el <b>token de Whaticket</b> (lo carga alguien con acceso a Supabase).</div>
 
-      <div style="font-weight:700;margin:14px 0 6px">1 · Identidad de la oficina</div>
-      <div class="grid2">
-        <div class="row"><label>Código de la oficina</label><input id="ofi_pc_codigo" placeholder="Ej: P8"><span style="font-size:11px;color:#9aa">El código corto del sistema. Seguí la serie: la próxima es P8.</span></div>
-        <div class="row"><label>Nombre de la oficina</label><input id="ofi_oficina_id" placeholder="Ej: PEPEPLATA"><span style="font-size:11px;color:#9aa">Como se la conoce (el nombre del dueño/agencia). Sin espacios.</span></div>
-        <div class="row"><label>Nombre público (lo ve el jugador)</label><input id="ofi_nombre" placeholder="Ej: Canal 8"></div>
-      </div>
+      <div style="font-weight:700;margin:14px 0 6px">1 · Nombre de la oficina</div>
+      <div class="row"><input id="ofi_oficina_id" placeholder="Ej: PEPEPLATA"><span style="font-size:11px;color:#9aa">Como se la conoce (el nombre del dueño o la agencia), sin espacios. El código del sistema se asigna solo, siguiendo la serie.</span></div>
 
       <div style="font-weight:700;margin:14px 0 6px">2 · Puestos de Chunior</div>
-      <div class="notice" style="border-color:rgba(59,130,246,.5)"><b>Un puesto por renglón.</b> Cada renglón es un puesto distinto de Chunior — o sea, un subagente con su propia sesión. Una oficina puede tener varios (varias PCs, cada operador en el suyo, con sus billeteras).<br>
-      Copiá el nombre <b>tal cual figura en Chunior</b>. <b>No escribas la versión "EN USO"</b>: el sistema la genera sola, y también aguanta que Chunior lo muestre con guiones, puntos o acentos.</div>
-      <div class="row"><label>Puestos (uno por renglón)</label><textarea id="ofi_aliases" rows="4" placeholder="PEPE GRAL&#10;PEPE CAJA 2&#10;PEPE CAJA 3"></textarea></div>
+      <div class="notice" style="border-color:rgba(59,130,246,.5)"><b>Un puesto por renglón.</b> Cada renglón es un puesto distinto de Chunior — un subagente con su propia sesión. Una oficina puede tener varios: varias PCs, cada operador en el suyo, con sus billeteras.<br>
+      Copiá el nombre <b>tal cual figura en Chunior</b>. <b>No escribas la versión "EN USO"</b>: se genera sola, y también aguanta que Chunior lo muestre con guiones, puntos o acentos.</div>
+      <div class="row"><textarea id="ofi_aliases" rows="4" placeholder="PEPE GRAL&#10;PEPE CAJA 2&#10;PEPE CAJA 3"></textarea></div>
 
-      <div style="font-weight:700;margin:14px 0 6px">3 · Link del portal</div>
-      <div class="grid2">
-        <div class="row"><label>Ruta pública (?r=)</label><input id="ofi_public_code" placeholder="rt-xxxxx (vacío = automática)"></div>
-        <div class="row"><label>Subdominio (producción, ej: p8)</label><input id="ofi_subdominio" placeholder="p8 → p8.tudominio.com"></div>
-        <div class="row"><label>WhatsApp (opcional)</label><input id="ofi_whatsapp" placeholder="549..."></div>
-        <div class="row"><label>Link plataforma (opcional)</label><input id="ofi_link" placeholder="https://www.bet-300.pw/"></div>
-      </div>
+      <div style="font-weight:700;margin:14px 0 6px">3 · Dirección del portal</div>
+      <div class="row"><label>Subdominio</label><input id="ofi_subdominio" placeholder="Ej: pepe"><span style="font-size:11px;color:#9aa">Es la dirección que se le pasa al jugador. Si se deja vacío, igual queda un link largo que funciona.</span></div>
 
       <div style="font-weight:700;margin:14px 0 6px">4 · Acceso al backoffice</div>
       <div class="grid2">
@@ -1763,22 +1754,26 @@ testResolverAlias = async function(){
   window.oficinaWizardCrear=async function(){
     const out=$id("ofi_resultado");
     const oficina_id=gv("ofi_oficina_id").toUpperCase();
-    const pc=(typeof normPc==="function"?normPc(gv("ofi_pc_codigo")):gv("ofi_pc_codigo").toUpperCase());
-    const nombre=gv("ofi_nombre")||pc;
-    const code=gv("ofi_public_code")||randomCode();
-    if(!oficina_id||!pc){ out.innerHTML='<div class="notice" style="border-color:rgba(239,68,68,.7);color:#fca5a5">Faltan el <b>código</b> y el <b>nombre</b> de la oficina (paso 1).</div>'; return; }
+    const nombre=oficina_id;
+    const code=randomCode();
+    if(!oficina_id){ out.innerHTML='<div class="notice" style="border-color:rgba(239,68,68,.7);color:#fca5a5">Falta el <b>nombre de la oficina</b> (paso 1).</div>'; return; }
     const tok=(typeof requireAdminToken==="function")?requireAdminToken():null;
     const btn=$id("ofi_btn"); if(btn){btn.disabled=true;btn.textContent="Creando...";}
+    let pc="";
     try{
-      // 0) La oficina en sí. Sin esto no aparece en ningún selector del Admi.
+      // 0) La oficina en sí, y el código sale de acá: la RPC sigue la serie (P7 -> P8).
+      //    Sin este paso la oficina no aparece en ningún selector del Admi.
       {
-        const r=await supabaseClient.rpc("admin_general_crear_oficina",{p_session_token:tok,p_pc_codigo:pc,p_nombre:nombre,p_descripcion:oficina_id});
+        const r=await supabaseClient.rpc("admin_general_crear_oficina",{p_session_token:tok,p_pc_codigo:null,p_nombre:nombre,p_descripcion:oficina_id});
         if(r.error) throw r.error;
-        if(r.data && r.data.ok===false) throw new Error(r.data.mensaje||"No se pudo crear la oficina");
+        if(!r.data || r.data.ok===false) throw new Error((r.data&&r.data.mensaje)||"No se pudo crear la oficina");
+        pc=r.data.codigo;
       }
       // 1) Ruta pública del portal
-      await rpcRowsSafe("admin_general_guardar_ruta",{p_session_token:tok,p_id:null,p_pc_codigo:pc,p_public_code:code,p_nombre_publico:nombre,p_link_plataforma:gv("ofi_link"),p_whatsapp_numero:gv("ofi_whatsapp"),p_activo:true},async()=>{
-        const r=await supabaseClient.from("landing_rutas_publicas").insert([{pc_codigo:pc,public_code:code,nombre_publico:nombre,link_plataforma:gv("ofi_link"),whatsapp_numero:gv("ofi_whatsapp"),activo:true}]);
+      // El link de la plataforma y el WhatsApp no los lee ni el portal ni el panel:
+      // se dejan vacíos y la RPC de resolución aplica su propio default.
+      await rpcRowsSafe("admin_general_guardar_ruta",{p_session_token:tok,p_id:null,p_pc_codigo:pc,p_public_code:code,p_nombre_publico:nombre,p_link_plataforma:"",p_whatsapp_numero:"",p_activo:true},async()=>{
+        const r=await supabaseClient.from("landing_rutas_publicas").insert([{pc_codigo:pc,public_code:code,nombre_publico:nombre,activo:true}]);
         if(r.error) throw r.error; return [];
       });
       // 1b) Subdominio de producción (opcional). Mirar .error (la RPC no tira excepción).
@@ -1814,7 +1809,9 @@ testResolverAlias = async function(){
       try{ await supabaseClient.rpc("admin_set_proxy",{p_session_token:tok,p_pc_codigo:pc,p_enabled:(gv("ofi_proxy_enabled")==="1"),p_protocol:gv("ofi_proxy_protocol")||"http",p_host:gv("ofi_proxy_host"),p_port:gv("ofi_proxy_port"),p_username:gv("ofi_proxy_user"),p_password:gv("ofi_proxy_pass"),p_bypass:gv("ofi_proxy_bypass")}); }catch(_e){ console.warn("proxy",_e); }
       // Promo de primer ingreso (on/off)
       try{ await supabaseClient.rpc("admin_general_set_promo",{p_session_token:tok,p_pc_codigo:pc,p_activa:(gv("ofi_promo")==="1")}); }catch(_e){ console.warn("promo",_e); }
-      const portalUrl=(gv("ofi_link")||"https://www.bet-300.pw/")+"?r="+code;
+      // Mismo criterio que el botón "Copiar link" de la lista, para no tener dos verdades.
+      const _sub2=gv("ofi_subdominio").trim();
+      const portalUrl=_sub2 ? ("https://"+_sub2+".portal-bet-300.com") : ("https://portal-bet-300.com/?r="+code);
       const _ico={creado:"✅",completado:"✅",ya_existia:"➖",repetido:"➖",choque:"⛔"};
       const detHtml=puestosDetalle.length
         ? `<div style="margin-top:8px">${puestosDetalle.map(function(x){
@@ -1864,14 +1861,12 @@ testResolverAlias = async function(){
       if(error) throw error; filas=data||[];
     }catch(e){ cont.innerHTML='<div class="notice" style="border-color:rgba(239,68,68,.7);color:#fca5a5">No se pudo cargar: '+esc(e.message||e)+'</div>'; return; }
     if(!filas.length){ cont.innerHTML='<div class="notice">No hay oficinas cargadas.</div>'; return; }
-    const chip=function(ok,txt,aviso){
+    const chip=function(ok,txt){
       const col = ok ? 'background:rgba(34,197,94,.16);color:#4ade80;border:1px solid rgba(34,197,94,.4)'
-                     : (aviso ? 'background:rgba(234,179,8,.14);color:#fbbf24;border:1px solid rgba(234,179,8,.4)'
-                              : 'background:rgba(239,68,68,.14);color:#fca5a5;border:1px solid rgba(239,68,68,.4)');
-      return '<span style="display:inline-block;font-size:11px;font-weight:700;border-radius:999px;padding:3px 9px;margin:2px 2px 0 0;'+col+'">'+(ok?'✓':(aviso?'!':'✗'))+' '+txt+'</span>';
+                     : 'background:rgba(239,68,68,.14);color:#fca5a5;border:1px solid rgba(239,68,68,.4)';
+      return '<span style="display:inline-block;font-size:11px;font-weight:700;border-radius:999px;padding:3px 9px;margin:2px 2px 0 0;'+col+'">'+(ok?'✓':'✗')+' '+txt+'</span>';
     };
     cont.innerHTML=filas.map(function(f){
-      const sinEnUso=(f.puestos_sin_en_uso||[]);
       const falta=[];
       if(!f.puestos) falta.push("puestos de Chunior");
       if(!f.ruta) falta.push("link del portal");
@@ -1887,11 +1882,10 @@ testResolverAlias = async function(){
           ${chip(f.puestos>0,'Puestos '+f.puestos)}
           ${chip(f.ruta>0,'Portal')}
           ${chip(f.billeteras>0,'Billeteras '+f.billeteras)}
-          ${chip(f.billeteras_uid>0,'Billeteras sincronizadas '+f.billeteras_uid, f.billeteras>0&&!f.billeteras_uid)}
+          ${chip(f.billeteras_uid>0,'Billeteras sincronizadas '+f.billeteras_uid)}
           ${chip(f.operadores>0,'Operadores '+f.operadores)}
-          ${chip(f.lineas_wt>0,'Whaticket '+(f.lineas_wt?(f.lineas_wt_ok+'/'+f.lineas_wt+' conectadas'):'—'), f.lineas_wt>0&&!f.lineas_wt_ok)}
+          ${chip(f.lineas_wt>0,'Whaticket '+(f.lineas_wt?(f.lineas_wt_ok+'/'+f.lineas_wt+' conectadas'):'—'))}
         </div>
-        ${sinEnUso.length?`<div style="margin-top:5px;font-size:12px;color:#fbbf24">! Sin su variante "EN USO": ${esc(sinEnUso.join(", "))} — mientras Chunior lo muestre ocupado, el panel no lo reconoce. Volvé a guardar el puesto para que se cree.</div>`:""}
       </div>`;
     }).join("");
   };
@@ -1910,8 +1904,7 @@ testResolverAlias = async function(){
       const _agr=(window._puestosAgrup||[]).filter(function(x){return String(x.pc_codigo||"").toUpperCase()===String(pc).toUpperCase();});
       const _mkChip=function(p){
         const extra=p.variantes>2?` <span style="color:#7c8698" title="${esc((p.todas||[]).join(', '))}">·${p.variantes}</span>`:"";
-        const warn=(p.tipo==="puesto"&&!p.tiene_en_uso)?` <span title="Le falta la variante EN USO" style="color:#fbbf24">!</span>`:"";
-        return `<span style="display:inline-flex;align-items:center;gap:4px;background:#222a3a;border-radius:6px;padding:3px 8px;margin:2px;font-size:12px">${esc(p.puesto)}${extra}${warn} <a href="javascript:void 0" onclick="oficinaQuitarPuesto('${esc(pc)}','${esc(p.base)}')" title="Quitar el puesto y todas sus variantes" style="color:#fca5a5;text-decoration:none">✕</a></span>`;
+        return `<span style="display:inline-flex;align-items:center;gap:4px;background:#222a3a;border-radius:6px;padding:3px 8px;margin:2px;font-size:12px">${esc(p.puesto)}${extra} <a href="javascript:void 0" onclick="oficinaQuitarPuesto('${esc(pc)}','${esc(p.base)}')" title="Quitar el puesto y todas sus variantes" style="color:#fca5a5;text-decoration:none">✕</a></span>`;
       };
       const chips=_agr.filter(function(p){return p.tipo==="puesto";}).map(_mkChip).join("");
       const chipsCod=_agr.filter(function(p){return p.tipo==="codigo";}).map(_mkChip).join("");
