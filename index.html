@@ -1872,6 +1872,10 @@ testResolverAlias = async function(){
     try{ const bs=await supabaseClient.rpc("admin_get_bases",{p_session_token:tok}); window._basesFull=(!bs.error && Array.isArray(bs.data))?bs.data:[]; }catch(_e){ window._basesFull=window._basesFull||[]; }
     // Puestos AGRUPADOS: una fila por puesto real, no por cada variante escrita a mano.
     try{ const ps=await supabaseClient.rpc("admin_general_puestos_list",{p_session_token:tok}); window._puestosAgrup=(!ps.error && Array.isArray(ps.data))?ps.data:[]; }catch(_e){ window._puestosAgrup=window._puestosAgrup||[]; }
+    // OBLIGATORIO antes de renderizar: de acá salen billeteras, operando, encargado y
+    // Whaticket. Sin esta llamada _altasEstado queda vacío y esos cuatro chips muestran 0
+    // aunque la oficina esté perfecta.
+    await altasChecklistCargar();
     oficinaListaRender();
   };
 
