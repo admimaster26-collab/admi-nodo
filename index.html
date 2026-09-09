@@ -3007,4 +3007,87 @@ async function buscarCrm(){
 })();
 </script>
 
+<script>
+/* NODO · ADMI — unificacion de secciones que mostraban lo mismo.
+   Se MUEVE el contenido de una seccion dentro de otra en vez de reescribir el HTML:
+   los ids no cambian, asi que todos los loaders y renders existentes siguen andando.
+   Los botones sobrantes se ocultan (no se borran) y se redirige a quien entre por
+   el nombre viejo. */
+(function(){
+  function $id(x){ return document.getElementById(x); }
+
+  // Un separador para que al unir dos vistas se vea donde empieza la otra.
+  function sep(txt, sub){
+    const d=document.createElement("div");
+    d.style.cssText="margin:26px 0 10px;padding-top:16px;border-top:1px solid var(--line)";
+    d.innerHTML='<h2 style="font-size:20px">'+txt+'</h2>'
+      + (sub?'<p style="color:var(--muted);font-size:13px;margin-top:4px">'+sub+'</p>':'');
+    return d;
+  }
+
+  // Mueve todo el contenido de #section-<origen> al final de #section-<destino>.
+  function absorber(destino, origen, titulo, subtitulo){
+    const d=$id("section-"+destino), o=$id("section-"+origen);
+    if(!d || !o || o.dataset.absorbida) return false;
+    // El titulo lo pone el separador, asi que se saca el <h2> propio de la seccion
+    // movida: si no, queda escrito dos veces seguidas.
+    const h=o.querySelector("h2"); if(h) h.remove();
+    d.appendChild(sep(titulo, subtitulo));
+    while(o.firstChild) d.appendChild(o.firstChild);
+    o.dataset.absorbida = destino;
+    const btn=document.querySelector('.nav [data-section="'+origen+'"]');
+    if(btn) btn.style.setProperty("display","none","important");
+    return true;
+  }
+
+  function aplicar(){
+    // 1) Reconexion + Recuperacion: las dos miden "quien dejo de operar y que se hizo".
+    //    Cambia la fuente (historial_ops arranca en julio; el rescate sale del CSV del
+    //    agente y cubre todo el año), no el objetivo. Tener dos entradas obligaba a
+    //    explicar cual era cual cada vez.
+    absorber("recuperacion","reconexion",
+      "Reconexión por oficina",
+      "Mismo objetivo que el rescate de arriba, pero contado sobre lo que ve NODO (historial_ops, desde julio). El rescate de arriba sale del CSV del agente y llega más atrás.");
+
+    // 2) Crecimiento + Rendimiento: metricas por oficina y por operador.
+    absorber("crecimiento","rendimiento",
+      "Rendimiento por operador",
+      "Quién atendió, cuánto y con qué demora.");
+
+    // Titulos del menu, ahora que cada boton cubre mas de una cosa.
+    const rot={
+      recuperacion:"Recuperación y reconexión",
+      crecimiento:"Crecimiento y rendimiento",
+      historial:"Importar CSV Agente"   // no era un historial: es el importador
+    };
+    Object.keys(rot).forEach(function(k){
+      const b=document.querySelector('.nav [data-section="'+k+'"]');
+      if(!b || b.dataset.rotulado) return;
+      const badge=b.querySelector(".badge");
+      b.textContent=rot[k]+" ";
+      if(badge) b.appendChild(badge);
+      b.dataset.rotulado="1";
+    });
+  }
+
+  // Quien entre por el nombre viejo (un boton guardado, codigo interno) va al nuevo,
+  // y de paso se disparan los loaders de LAS DOS vistas que ahora comparten pantalla.
+  const _old=window.showSection;
+  if(typeof _old==="function"){
+    window.showSection=function(name){
+      const o=$id("section-"+name);
+      if(o && o.dataset.absorbida) name=o.dataset.absorbida;
+      const r=_old.apply(this,arguments.length?[name]:arguments);
+      if(name==="recuperacion") setTimeout(function(){ try{ rxAdmiCargar(); }catch(_e){} },120);
+      if(name==="crecimiento")  setTimeout(function(){ try{ cargarRendimiento(); }catch(_e){} },120);
+      return r;
+    };
+  }
+
+  if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",function(){ setTimeout(aplicar,600); });
+  else setTimeout(aplicar,600);
+  setTimeout(aplicar,1800);   // el nav y algunas secciones se arman despues del login
+})();
+</script>
+
 </body></html>
