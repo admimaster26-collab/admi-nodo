@@ -275,7 +275,7 @@
     <div class="v21-kpi warn v23-kpi"><small>Bonos error/reversión</small><strong id="growthBonosError">0</strong><span>requieren revisión</span></div>
     <div class="v21-kpi ok v23-kpi"><small>Usuarios nuevos</small><strong id="growthUsuariosNuevos">0</strong><span>creados en el rango</span></div>
     <div class="v21-kpi v23-kpi"><small>Vinculados</small><strong id="growthVinculados">0</strong><span>usuarios validados</span></div>
-    <div class="v21-kpi warn v23-kpi"><small>Pendientes validación</small><strong id="growthPendientes">0</strong><span>revisar vínculo</span></div>
+    <div class="v21-kpi warn v23-kpi"><small>Vínculos sin confirmar</small><strong id="growthPendientes">0</strong><span>revisar vínculo</span></div>
     <div class="v21-kpi bad v23-kpi"><small>Retiros parciales</small><strong id="growthRetirosParciales">0</strong><span id="growthRetirosDiff">$ 0 diferencia</span></div>
   </div>
 
@@ -295,7 +295,7 @@
         <div class="card-b"><div id="growthAlertas" class="v21-list"></div></div>
       </div>
       <div class="card">
-        <div class="card-h"><h3>Validaciones por oficina</h3><span class="muted">vínculos portal</span></div>
+        <div class="card-h"><h3>Vínculos por oficina</h3><span class="muted">estado del vínculo portal</span></div>
         <div class="card-b"><div id="growthValidacionesPc" class="v21-list"></div></div>
       </div>
       <div class="card">
@@ -1583,7 +1583,7 @@ testResolverAlias = async function(){
   window.adminV23GrowthRenderTables=function(){
     const data=window.__adminV23GrowthData||{}, view=document.getElementById('growth_view')?.value||'bonos', q=String(document.getElementById('growth_search')?.value||'').toLowerCase().trim();
     let rows=[], title='Bonos', head='', body='';
-    if(view==='validaciones'){ rows=data.validaciones||[]; title='Validaciones / vínculos portal'; }
+    if(view==='validaciones'){ rows=data.validaciones||[]; title='Vínculos del portal'; }
     else if(view==='usuarios'){ rows=data.usuarios_nuevos||[]; title='Usuarios nuevos'; }
     else if(view==='retiros_parciales'){ rows=data.retiros_parciales||[]; title='Retiros parciales'; }
     else if(view==='bonos_pc'){ rows=data.bonos_por_pc||[]; title='Bonos por PC'; }
@@ -1595,10 +1595,12 @@ testResolverAlias = async function(){
       body=rows.map(r=>`<tr><td>${fmtDate(r.created_at)}</td><td>${esc(r.pc_codigo||'')}</td><td><b>${esc(r.usuario||'')}</b></td><td>${money(r.monto)}</td><td><span class="v23-chip ${estadoChip(r.estado)}">${esc(r.estado||'')}</span></td><td>${esc(r.operador||'')}</td><td>${esc(r.billetera_nombre||'')}</td><td>${esc(r.chunior_movimiento_id||'—')}</td><td><span class="v23-note" title="${esc(r.notas||'')}">${esc(r.notas||'')}</span></td></tr>`).join('');
     }else if(view==='validaciones'){
       head='<tr><th>Fecha</th><th>PC</th><th>Usuario</th><th>Teléfono</th><th>Estado</th><th>Fuente</th><th>Detalle</th></tr>';
-      body=rows.map(r=>{const usuario=r.usuario||r.usuario_normalizado||r.username||r.user||''; const tel=r.telefono||r.telefono_normalizado||r.phone||''; return `<tr><td>${fmtDate(r.created_at)}</td><td>${esc(r.pc_codigo||'')}</td><td><b>${esc(usuario)}</b></td><td>${esc(tel)}</td><td><span class="v23-chip ${estadoChip(r.estado_vinculo)}">${esc(r.estado_vinculo||'')}</span></td><td>${esc(r.fuente||'')}</td><td><span class="v23-note" title="${esc(JSON.stringify(r))}">${esc(JSON.stringify(r))}</span></td></tr>`}).join('');
+      // El "Detalle" volcaba JSON.stringify(r) entero en la celda. Y el teléfono salía
+      // vacío porque las columnas reales son telefono_canon / telefono_raw.
+      body=rows.map(r=>{const usuario=r.usuario||r.usuario_normalizado||r.username||r.user||''; const tel=r.telefono_canon||r.telefono_raw||r.telefono||r.telefono_normalizado||''; const det=[r.verificado_por?('verificó '+r.verificado_por):'', r.app_instalada?'app instalada':'', r.cbu_retiro?'con CBU':'', r.duplicado_de?('duplicado de '+r.duplicado_de):''].filter(Boolean).join(' · ')||'—'; return `<tr><td>${fmtDate(r.created_at)}</td><td>${esc(r.pc_codigo||'')}</td><td><b>${esc(usuario)}</b></td><td>${esc(tel)}</td><td><span class="v23-chip ${estadoChip(r.estado_vinculo)}">${esc(r.estado_vinculo||'')}</span></td><td>${esc(r.fuente||'')}</td><td>${esc(det)}</td></tr>`}).join('');
     }else if(view==='usuarios'){
       head='<tr><th>Fecha</th><th>PC</th><th>Usuario</th><th>Teléfono</th><th>Datos</th></tr>';
-      body=rows.map(r=>{const usuario=r.usuario||r.usuario_normalizado||r.username||r.user||''; const tel=r.telefono||r.telefono_normalizado||r.phone||''; return `<tr><td>${fmtDate(r.created_at)}</td><td>${esc(r.pc_codigo||'')}</td><td><b>${esc(usuario)}</b></td><td>${esc(tel)}</td><td><span class="v23-note" title="${esc(JSON.stringify(r))}">${esc(JSON.stringify(r))}</span></td></tr>`}).join('');
+      body=rows.map(r=>{const usuario=r.usuario||r.usuario_normalizado||r.username||r.user||''; const tel=r.telefono_canon||r.telefono_raw||r.telefono||r.telefono_normalizado||''; const det=[r.verificado_por?('verificó '+r.verificado_por):'', r.estado_vinculo||'', r.fuente||''].filter(Boolean).join(' · ')||'—'; return `<tr><td>${fmtDate(r.created_at)}</td><td>${esc(r.pc_codigo||'')}</td><td><b>${esc(usuario)}</b></td><td>${esc(tel)}</td><td>${esc(det)}</td></tr>`}).join('');
     }else if(view==='retiros_parciales'){
       head='<tr><th>Fecha</th><th>PC</th><th>Usuario</th><th>Declarado</th><th>Aprobado</th><th>Diferencia</th><th>Estado</th><th>Operador</th><th>Detalle</th></tr>';
       body=rows.map(r=>`<tr><td>${fmtDate(r.created_at)}</td><td>${esc(r.pc_codigo||'')}</td><td><b>${esc(r.usuario||'')}</b></td><td>${money(r.monto_declarado)}</td><td>${money(r.monto_aprobado)}</td><td>${money(r.diferencia)}</td><td><span class="v23-chip ${estadoChip(r.estado)}">${esc(r.estado||'')}</span></td><td>${esc(r.operador||'')}</td><td><span class="v23-note" title="${esc(r.notas||'')}">${esc(r.notas||'')}</span></td></tr>`).join('');
@@ -3087,6 +3089,120 @@ async function buscarCrm(){
   if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",function(){ setTimeout(aplicar,600); });
   else setTimeout(aplicar,600);
   setTimeout(aplicar,1800);   // el nav y algunas secciones se arman despues del login
+})();
+</script>
+
+<script>
+/* NODO · ADMI — Solicitudes: pendientes reales de todas las oficinas.
+   La tabla que habia leia `solicitudes`, que quedo muerta el 01/06/2026 cuando el
+   sistema paso a `landing_solicitudes`: mostraba 156 filas de mayo y ninguna
+   pendiente de verdad. Se agrega la vista nueva arriba y se oculta la vieja. */
+(function(){
+  function $id(x){ return document.getElementById(x); }
+  function esc2(s){ return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c];}); }
+
+  // "hace 3 h", "hace 2 d 4 h" — leer minutos sueltos no dice nada de un vistazo.
+  function espera(min){
+    min=Number(min||0);
+    if(min<60) return min+" min";
+    const h=Math.round(min/60);          // truncar mostraba "1 h" para 104 min
+    if(h<48) return h+" h";
+    const d=Math.floor(h/24);
+    return d+" d "+(h%24)+" h";
+  }
+  // Un retiro de 6 h no es lo mismo que un soporte de 6 h.
+  function colorEspera(min,urg){
+    const h=Number(min||0)/60;
+    if(urg===1) return h>=3?"#fca5a5":(h>=1?"#fbbf24":"#4ade80");
+    return h>=48?"#fca5a5":(h>=12?"#fbbf24":"#94a3b8");
+  }
+
+  function montar(){
+    const sec=$id("section-solicitudes");
+    if(!sec || $id("pend_box")) return;
+    const card=document.createElement("div");
+    card.className="card";
+    card.innerHTML=
+      '<div class="card-h"><h3>Pendientes ahora · todas las oficinas</h3>'
+      + '<div class="rowActions">'
+      + '<label style="font-size:12px;color:var(--muted);display:flex;align-items:center;gap:5px">'
+      + '<input type="checkbox" id="pend_rev" style="width:auto" onchange="pendCargar()"> incluir tomadas sin cerrar</label>'
+      + '<button class="blue small" onclick="pendCargar()">Actualizar</button></div></div>'
+      + '<div class="card-b"><div id="pend_box"><div class="notice">Cargando…</div></div></div>';
+    sec.insertBefore(card, sec.firstChild);
+    // La tabla vieja queda en el DOM (otros renders la tocan), pero no se muestra.
+    const vieja=$id("solBody"); const cv=vieja&&vieja.closest(".card");
+    if(cv) cv.style.display="none";
+  }
+
+  window.pendCargar=async function(){
+    montar();
+    const box=$id("pend_box"); if(!box) return;
+    const tok=(typeof requireAdminToken==="function")?requireAdminToken():null;
+    const conRev=!!($id("pend_rev")&&$id("pend_rev").checked);
+    box.innerHTML='<div class="notice">Cargando…</div>';
+    let d;
+    try{
+      const {data,error}=await supabaseClient.rpc("admin_od_pendientes_v1",{p_session_token:tok,p_incluir_revision:conRev});
+      if(error) throw error; d=data||{};
+    }catch(e){ box.innerHTML='<div class="notice" style="border-color:rgba(239,68,68,.7);color:#fca5a5">No se pudo cargar: '+esc2(e.message||e)+'</div>'; return; }
+    if(!d.ok){ box.innerHTML='<div class="notice">'+esc2(d.error||"Sin permiso.")+'</div>'; return; }
+
+    const ofis=d.oficinas||[], filas=d.filas||[];
+    const resumen='<div class="notice"><b>'+Number(d.urgentes||0)+'</b> esperando plata (retiros, cargas y claves) · '
+      + '<b>'+Number(d.pendientes||0)+'</b> sin atender en total'
+      + (conRev?' · <b>'+Number(d.en_revision||0)+'</b> tomadas y nunca cerradas':'')+'.</div>';
+
+    const porOfi='<div style="display:flex;flex-wrap:wrap;gap:8px;margin:10px 0">'
+      + ofis.map(function(o){
+          const urg=Number(o.urgentes||0);
+          return '<div class="item" style="display:block;min-width:150px;flex:1">'
+            + '<strong>'+esc2(o.pc)+'</strong>'
+            + '<div style="font-size:12px;margin-top:3px;color:'+(urg?'#fca5a5':'#94a3b8')+'">'
+            + (urg? urg+' esperando plata' : 'nada urgente')+'</div>'
+            + '<div style="font-size:11px;color:var(--muted);margin-top:2px">'
+            + (Number(o.retiros||0)?('retiros '+o.retiros+' · '):'')
+            + (Number(o.cargas||0)?('cargas '+o.cargas+' · '):'')
+            + 'soporte '+Number(o.soporte||0)+'</div>'
+            + (o.espera_urgente_min!=null?'<div style="font-size:11px;color:'+colorEspera(o.espera_urgente_min,1)+';margin-top:2px">la más vieja: '+espera(o.espera_urgente_min)+'</div>':'')
+            + '</div>';
+        }).join('')
+      + '</div>';
+
+    const cuerpo = filas.length
+      ? filas.map(function(f){
+          const c=colorEspera(f.minutos,f.urgencia);
+          return '<tr>'
+            + '<td style="color:'+c+';font-weight:700;white-space:nowrap">'+espera(f.minutos)+'</td>'
+            + '<td>'+esc2(f.pc)+'</td>'
+            + '<td><b>'+esc2(f.tipo)+'</b></td>'
+            + '<td>'+esc2(f.usuario||'—')+'</td>'
+            + '<td>'+esc2(f.telefono||'')+'</td>'
+            + '<td>'+(f.monto!=null&&f.monto!==''?('$'+Number(f.monto).toLocaleString("es-AR")):'')+'</td>'
+            + '<td>'+esc2(f.estado)+'</td>'
+            + '<td>'+esc2(f.tomada_por||'—')+'</td>'
+            + '</tr>';
+        }).join('')
+      : '<tr><td colspan="8" style="color:var(--muted)">No hay nada pendiente.</td></tr>';
+
+    box.innerHTML = resumen + porOfi
+      + '<div class="tableWrap"><table><thead><tr>'
+      + '<th>Espera</th><th>Oficina</th><th>Tipo</th><th>Usuario</th><th>Teléfono</th><th>Monto</th><th>Estado</th><th>Tomada por</th>'
+      + '</tr></thead><tbody>'+cuerpo+'</tbody></table></div>'
+      + (filas.length>=500?'<div class="notice" style="margin-top:8px">Se muestran las 500 más urgentes.</div>':'');
+  };
+
+  const _old=window.showSection;
+  if(typeof _old==="function"){
+    window.showSection=function(name){
+      const r=_old.apply(this,arguments);
+      if(name==="solicitudes") setTimeout(function(){ try{ pendCargar(); }catch(_e){} },120);
+      return r;
+    };
+  }
+  if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",function(){ setTimeout(montar,700); });
+  else setTimeout(montar,700);
+  setTimeout(montar,1900);
 })();
 </script>
 
