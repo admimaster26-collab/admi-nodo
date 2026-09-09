@@ -3361,7 +3361,9 @@ async function buscarCrm(){
       + '<div class="card-b">'
       + '<div class="notice">Esta lista <b>no se carga a mano</b>: sale de lo que cada uno operó. Si alguien entra por Chunior, aparece solo.</div>'
       + '<div id="opsr_box"><div class="notice">Cargando…</div></div></div>';
-    sec.insertBefore(card, sec.firstChild);
+    // Va al final: primero se crea el acceso al Admi y se ve quien entra, y despues
+    // la lista de operadores, que es informativa y no se administra desde aca.
+    sec.appendChild(card);
   }
 
   window.opsrCargar=async function(){
