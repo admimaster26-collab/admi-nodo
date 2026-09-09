@@ -47,6 +47,14 @@
 .nav [data-section="mapa"],
 .nav [data-section="portal-rutas"],
 .nav [data-section="aliases"]{display:none!important}
+
+/* Worker: la cola se apagó el 04/06/2026 al pasar a operación on-demand desde el
+   panel. Los "workers caídos hace 1818 h" y los 2.000 pendientes que mostraba eran
+   de esa época: nada de eso se procesa ni se va a procesar. Lo único que seguía
+   entrando eran validaciones de login del portal, que ya no se encolan.
+   Se oculta del menú, no se borra: el worker está dormido a propósito
+   (WORKERS_ENABLED) y si se reactiva, esta sección vuelve a servir. */
+.nav [data-section="worker"]{display:none!important}
 </style>
 </head>
 <body>
