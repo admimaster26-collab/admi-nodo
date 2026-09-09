@@ -3117,53 +3117,171 @@ async function buscarCrm(){
     return h>=48?"#fca5a5":(h>=12?"#fbbf24":"#94a3b8");
   }
 
+  // Las oficinas salen de la base, nunca escritas a mano: si no, las nuevas no aparecen.
+  // Se rellena en cada busqueda porque `pcs` puede estar vacio cuando se arma la tarjeta.
+  function llenarOficinas(){
+    const sel=$id("pend_pc"); if(!sel) return;
+    try{
+      const lista=(typeof pcs!=="undefined"&&pcs&&pcs.length)?pcs:(window.pcs||[]);
+      const cods=lista.map(function(p){return String(p.codigo||p.pc_codigo||"").toUpperCase();})
+                      .filter(function(c){return c && c!=="TODAS";})
+                      .filter(function(c,i,a){return a.indexOf(c)===i;}).sort();
+      if(!cods.length || sel.options.length-1===cods.length) return;
+      const prev=sel.value;
+      sel.innerHTML='<option value="">Todas las oficinas</option>';
+      cods.forEach(function(c){ const o=document.createElement("option"); o.value=c; o.textContent=c; sel.appendChild(o); });
+      if(prev) sel.value=prev;
+    }catch(_e){}
+  }
+
   function montar(){
     const sec=$id("section-solicitudes");
-    if(!sec || $id("pend_box")) return;
+    if(!sec || $id("pend_box")){ llenarOficinas(); return; }
     const card=document.createElement("div");
     card.className="card";
     card.innerHTML=
-      '<div class="card-h"><h3>Pendientes ahora · todas las oficinas</h3>'
+      '<div class="card-h"><h3 id="pend_titulo">Solicitudes del portal</h3>'
       + '<div class="rowActions">'
-      + '<label style="font-size:12px;color:var(--muted);display:flex;align-items:center;gap:5px">'
-      + '<input type="checkbox" id="pend_rev" style="width:auto" onchange="pendCargar()"> incluir tomadas sin cerrar</label>'
-      + '<button class="blue small" onclick="pendCargar()">Actualizar</button></div></div>'
-      + '<div class="card-b"><div id="pend_box"><div class="notice">Cargando…</div></div></div>';
+      + '<button class="blue small" onclick="pendCargar()">Buscar</button>'
+      + '<button class="small" onclick="pendLimpiar()">Limpiar</button></div></div>'
+      + '<div class="card-b">'
+      // Atajos: lo que se mira todos los dias, sin tener que armar el filtro.
+      + '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">'
+      +   '<button class="small" id="pend_v_pend"  onclick="pendVista(\'pendientes\')">Pendientes</button>'
+      +   '<button class="small" id="pend_v_plata" onclick="pendVista(\'plata\')">Cargas y retiros</button>'
+      +   '<button class="small" id="pend_v_sop"   onclick="pendVista(\'soporte\')">Soporte abierto</button>'
+      +   '<button class="small" id="pend_v_hoy"   onclick="pendVista(\'hoy\')">Todo lo de hoy</button>'
+      + '</div>'
+      + '<div class="filters compact" style="flex-wrap:wrap;gap:8px">'
+      +   '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">'
+      +     '<span style="font-size:12px;color:var(--muted)">Tipo:</span>'
+      +     ['CARGA','RETIRO','SOPORTE','CAMBIO_CLAVE'].map(function(t){
+              return '<label style="font-size:12px;display:flex;align-items:center;gap:4px;cursor:pointer">'
+                + '<input type="checkbox" class="pend_tipo" value="'+t+'" style="width:auto">'
+                + (t==='CAMBIO_CLAVE'?'Cambio de clave':t.charAt(0)+t.slice(1).toLowerCase())+'</label>';
+            }).join('')
+      +   '</div>'
+      +   '<select id="pend_estado"><option value="">Todos los estados</option>'
+      +     '<option value="PENDIENTE">Pendiente</option>'
+      +     '<option value="EN_REVISION">Tomada sin cerrar</option>'
+      +     '<option value="ACREDITADA">Acreditada</option>'
+      +     '<option value="PAGADA">Pagada</option>'
+      +     '<option value="APROBADA">Aprobada</option>'
+      +     '<option value="RECHAZADA">Rechazada</option>'
+      +     '<option value="CERRADO">Cerrada</option>'
+      +     '<option value="CANCELADA">Cancelada</option></select>'
+      +   '<select id="pend_pc"><option value="">Todas las oficinas</option></select>'
+      +   '<input id="pend_desde" type="date" title="Desde">'
+      +   '<input id="pend_hasta" type="date" title="Hasta">'
+      +   '<input id="pend_q" placeholder="Usuario o teléfono" style="min-width:170px">'
+      + '</div>'
+      + '<div id="pend_box" style="margin-top:12px"><div class="notice">Cargando…</div></div></div>';
     sec.insertBefore(card, sec.firstChild);
+
+    llenarOficinas();
+
+    // Enter en el buscador dispara la busqueda.
+    const q=card.querySelector("#pend_q");
+    if(q) q.addEventListener("keydown",function(e){ if(e.key==="Enter") pendCargar(); });
     // La tabla vieja queda en el DOM (otros renders la tocan), pero no se muestra.
     const vieja=$id("solBody"); const cv=vieja&&vieja.closest(".card");
     if(cv) cv.style.display="none";
+  }
+
+  function hoyISO(){ const d=new Date(); return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10); }
+  function setTipos(arr){
+    document.querySelectorAll(".pend_tipo").forEach(function(c){ c.checked = arr.indexOf(c.value)>=0; });
+  }
+  function getTipos(){
+    return [...document.querySelectorAll(".pend_tipo:checked")].map(function(c){ return c.value; });
+  }
+
+  window.pendLimpiar=function(){
+    setTipos([]);
+    ["pend_estado","pend_pc","pend_desde","pend_hasta","pend_q"].forEach(function(id){ const e=$id(id); if(e) e.value=""; });
+    pendCargar();
+  };
+
+  // Atajos a las combinaciones que se usan todos los dias.
+  window.pendVista=function(v){
+    montar();
+    pendLimpiarCampos();
+    if(v==="pendientes"){ $id("pend_estado").value="PENDIENTE"; }
+    else if(v==="plata"){ setTipos(["CARGA","RETIRO","CAMBIO_CLAVE"]); $id("pend_estado").value="PENDIENTE"; }
+    else if(v==="soporte"){ setTipos(["SOPORTE"]); }   // sin estado: PENDIENTE + tomadas sin cerrar
+    else if(v==="hoy"){ $id("pend_desde").value=hoyISO(); $id("pend_hasta").value=hoyISO(); }
+    pendCargar();
+  };
+  function pendLimpiarCampos(){
+    setTipos([]);
+    ["pend_estado","pend_pc","pend_desde","pend_hasta","pend_q"].forEach(function(id){ const e=$id(id); if(e) e.value=""; });
   }
 
   window.pendCargar=async function(){
     montar();
     const box=$id("pend_box"); if(!box) return;
     const tok=(typeof requireAdminToken==="function")?requireAdminToken():null;
-    const conRev=!!($id("pend_rev")&&$id("pend_rev").checked);
-    box.innerHTML='<div class="notice">Cargando…</div>';
+    const tipos=getTipos();
+    const est=($id("pend_estado")||{}).value||"";
+    const pc=($id("pend_pc")||{}).value||"";
+    const desde=($id("pend_desde")||{}).value||null;
+    const hasta=($id("pend_hasta")||{}).value||null;
+    const q=(($id("pend_q")||{}).value||"").trim();
+    // Soporte abierto = pendiente + tomada sin cerrar; en el resto, el estado elegido.
+    const estados = est ? [est] : (tipos.length===1 && tipos[0]==="SOPORTE" ? ["PENDIENTE","EN_REVISION"] : null);
+
+    box.innerHTML='<div class="notice">Buscando…</div>';
     let d;
     try{
-      const {data,error}=await supabaseClient.rpc("admin_od_pendientes_v1",{p_session_token:tok,p_incluir_revision:conRev});
+      const {data,error}=await supabaseClient.rpc("admin_od_solicitudes_v1",{
+        p_session_token:tok,
+        p_tipos: tipos.length?tipos:null,
+        p_estados: estados,
+        p_pcs: pc?[pc]:null,
+        p_desde: desde, p_hasta: hasta,
+        p_busqueda: q||null,
+        p_limit: 300
+      });
       if(error) throw error; d=data||{};
     }catch(e){ box.innerHTML='<div class="notice" style="border-color:rgba(239,68,68,.7);color:#fca5a5">No se pudo cargar: '+esc2(e.message||e)+'</div>'; return; }
     if(!d.ok){ box.innerHTML='<div class="notice">'+esc2(d.error||"Sin permiso.")+'</div>'; return; }
 
+    const conRev = Number(d.en_revision||0)>0;
+    const t=$id("pend_titulo");
+    if(t){
+      const partes=[];
+      if(tipos.length) partes.push(tipos.map(function(x){return x==='CAMBIO_CLAVE'?'cambios de clave':x.toLowerCase()+'s';}).join(' y '));
+      if(est) partes.push(est==='EN_REVISION'?'tomadas sin cerrar':est.toLowerCase());
+      if(pc) partes.push('en '+pc);
+      if(desde||hasta) partes.push((desde||'…')+' → '+(hasta||'…'));
+      if(q) partes.push('"'+q+'"');
+      t.textContent = partes.length? ('Solicitudes · '+partes.join(' · ')) : 'Solicitudes del portal · pendientes';
+    }
+
     const ofis=d.oficinas||[], filas=d.filas||[];
-    const resumen='<div class="notice"><b>'+Number(d.urgentes||0)+'</b> esperando plata (retiros, cargas y claves) · '
-      + '<b>'+Number(d.pendientes||0)+'</b> sin atender en total'
-      + (conRev?' · <b>'+Number(d.en_revision||0)+'</b> tomadas y nunca cerradas':'')+'.</div>';
+    const tot=Number(d.total||0), most=Number(d.mostrando||0), monto=Number(d.monto_total||0);
+    const bits=[];
+    if(Number(d.urgentes||0)) bits.push('<b>'+d.urgentes+'</b> esperando plata (retiros, cargas y claves)');
+    if(Number(d.pendientes||0)) bits.push('<b>'+d.pendientes+'</b> sin atender');
+    if(conRev) bits.push('<b>'+d.en_revision+'</b> tomadas y nunca cerradas');
+    const resumen='<div class="notice">'
+      + '<b>'+tot.toLocaleString("es-AR")+'</b> resultado'+(tot===1?'':'s')
+      + (most<tot?(' (se muestran '+most+')'):'')
+      + (monto?(' · $'+monto.toLocaleString("es-AR")):'')
+      + (bits.length?(' — '+bits.join(' · ')):'')+'.</div>';
 
     const porOfi='<div style="display:flex;flex-wrap:wrap;gap:8px;margin:10px 0">'
       + ofis.map(function(o){
-          const urg=Number(o.urgentes||0);
+          const urg=Number(o.urgentes||0), mto=Number(o.monto||0);
+          const det=[];
+          if(Number(o.retiros||0)) det.push('retiros '+o.retiros);
+          if(Number(o.cargas||0))  det.push('cargas '+o.cargas);
+          if(Number(o.soporte||0)) det.push('soporte '+o.soporte);
           return '<div class="item" style="display:block;min-width:150px;flex:1">'
-            + '<strong>'+esc2(o.pc)+'</strong>'
-            + '<div style="font-size:12px;margin-top:3px;color:'+(urg?'#fca5a5':'#94a3b8')+'">'
-            + (urg? urg+' esperando plata' : 'nada urgente')+'</div>'
-            + '<div style="font-size:11px;color:var(--muted);margin-top:2px">'
-            + (Number(o.retiros||0)?('retiros '+o.retiros+' · '):'')
-            + (Number(o.cargas||0)?('cargas '+o.cargas+' · '):'')
-            + 'soporte '+Number(o.soporte||0)+'</div>'
+            + '<strong>'+esc2(o.pc)+' · '+Number(o.total||0).toLocaleString("es-AR")+'</strong>'
+            + (urg?'<div style="font-size:12px;margin-top:3px;color:#fca5a5">'+urg+' esperando plata</div>':'')
+            + (det.length?'<div style="font-size:11px;color:var(--muted);margin-top:2px">'+det.join(' · ')+'</div>':'')
+            + (mto?'<div style="font-size:11px;color:var(--muted);margin-top:2px">$'+mto.toLocaleString("es-AR")+'</div>':'')
             + (o.espera_urgente_min!=null?'<div style="font-size:11px;color:'+colorEspera(o.espera_urgente_min,1)+';margin-top:2px">la más vieja: '+espera(o.espera_urgente_min)+'</div>':'')
             + '</div>';
         }).join('')
@@ -3180,16 +3298,15 @@ async function buscarCrm(){
             + '<td>'+esc2(f.telefono||'')+'</td>'
             + '<td>'+(f.monto!=null&&f.monto!==''?('$'+Number(f.monto).toLocaleString("es-AR")):'')+'</td>'
             + '<td>'+esc2(f.estado)+'</td>'
-            + '<td>'+esc2(f.tomada_por||'—')+'</td>'
+            + '<td>'+esc2(f.tomada_por||f.cerrada_por||'—')+'</td>'
             + '</tr>';
         }).join('')
-      : '<tr><td colspan="8" style="color:var(--muted)">No hay nada pendiente.</td></tr>';
+      : '<tr><td colspan="8" style="color:var(--muted)">No hay solicitudes con esos filtros.</td></tr>';
 
     box.innerHTML = resumen + porOfi
       + '<div class="tableWrap"><table><thead><tr>'
-      + '<th>Espera</th><th>Oficina</th><th>Tipo</th><th>Usuario</th><th>Teléfono</th><th>Monto</th><th>Estado</th><th>Tomada por</th>'
-      + '</tr></thead><tbody>'+cuerpo+'</tbody></table></div>'
-      + (filas.length>=500?'<div class="notice" style="margin-top:8px">Se muestran las 500 más urgentes.</div>':'');
+      + '<th>Espera</th><th>Oficina</th><th>Tipo</th><th>Usuario</th><th>Teléfono</th><th>Monto</th><th>Estado</th><th>Operador</th>'
+      + '</tr></thead><tbody>'+cuerpo+'</tbody></table></div>';
   };
 
   const _old=window.showSection;
