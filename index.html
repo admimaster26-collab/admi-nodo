@@ -675,6 +675,7 @@
     </div>
     <button class="blue" onclick="cargarRecuperacion()">Actualizar</button>
   </div>
+  <div id="recupUnificado"></div>
   <div id="recupBody"><p class="small">Cargando…</p></div>
 </section>
 
@@ -3439,6 +3440,91 @@ async function buscarCrm(){
   if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",function(){ setTimeout(montarOps,750); });
   else setTimeout(montarOps,750);
   setTimeout(montarOps,1950);
+})();
+</script>
+
+<script>
+/* NODO · ADMI — Recuperación: una sola tabla con la cola y el trabajo de los operadores.
+   Antes eran dos vistas que no coincidían: "Reconexión" contaba 99 contactados en P4 y
+   "Rescate" 92, y la columna Recuperados de Reconexión daba 0 en todas las oficinas
+   porque contaba el estado RECUPERADO, que nadie graba nunca (la tabla solo tiene
+   CONTACTADO, DESCARTADO y NO_CONTESTA). Acá "volvieron" se mide contra historial_ops:
+   cargó después de que lo contactaron. */
+(function(){
+  function $id(x){ return document.getElementById(x); }
+  function esc4(s){ return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c];}); }
+  function mm(v){ v=Number(v||0); return v>=1000000 ? ('$'+Math.round(v/1000000).toLocaleString("es-AR")+'M')
+                                                    : ('$'+Math.round(v/1000).toLocaleString("es-AR")+'k'); }
+  function nn(v){ return Number(v||0).toLocaleString("es-AR"); }
+
+  window.recupUnifCargar=async function(){
+    const box=$id("recupUnificado"); if(!box) return;
+    const tok=(typeof requireAdminToken==="function")?requireAdminToken():null;
+    box.innerHTML='<p class="small">Cargando…</p>';
+    let d;
+    try{
+      const {data,error}=await supabaseClient.rpc("admin_od_recuperacion_v1",{p_session_token:tok,p_dias:14});
+      if(error) throw error; d=data||{};
+    }catch(e){ box.innerHTML='<p class="small" style="color:#fca5a5">No se pudo cargar: '+esc4(e.message||e)+'</p>'; return; }
+    if(!d.ok){ box.innerHTML='<p class="small">'+esc4(d.error||"Sin permiso.")+'</p>'; return; }
+
+    const t=d.totales||{}, ofis=d.oficinas||[];
+
+    const filas=ofis.map(function(o){
+      const alta=Number(o.alta||0), trab=Number(o.trabajados||0);
+      // Una oficina con cola alta y sin trabajar es lo que hay que ver de un vistazo.
+      const sinTocar = alta>0 && trab===0;
+      const tasa=(o.tasa===null||o.tasa===undefined)?null:Number(o.tasa);
+      return '<tr'+(sinTocar?' style="background:rgba(239,68,68,.07)"':'')+'>'
+        + '<td><strong>'+esc4(o.pc)+'</strong></td>'
+        + '<td style="text-align:right;font-weight:800;color:'+(alta?'#fca5a5':'var(--muted)')+'">'+nn(alta)+'</td>'
+        + '<td style="text-align:right;color:var(--muted)">'+mm(o.valor_alta)+'</td>'
+        + '<td style="text-align:right">'+nn(o.media)+'</td>'
+        + '<td style="text-align:right;color:var(--muted)">'+nn(o.baja)+'</td>'
+        + '<td style="text-align:right">'+nn(trab)+'</td>'
+        + '<td style="text-align:right">'+nn(o.contactados)+'</td>'
+        + '<td style="text-align:right;font-weight:800;color:'+(Number(o.recuperados)?'#4ade80':'var(--muted)')+'">'+nn(o.recuperados)+'</td>'
+        + '<td style="text-align:right">'+(tasa===null?'—':(tasa+'%'))+'</td>'
+        + '<td style="text-align:right">'+nn(o.hoy)+'</td>'
+        + '<td style="font-size:11px;color:'+(sinTocar?'#fca5a5':'var(--muted)')+'">'
+        +   (sinTocar?'nadie la trabajó':(Number(o.ya_intentados)?nn(o.ya_intentados)+' ya intentados':''))+'</td>'
+        + '</tr>';
+    }).join('');
+
+    box.innerHTML =
+      '<div class="notice"><b>'+nn(t.alta)+'</b> personas para llamar primero, por '+mm(t.valor_alta)
+      + ' de valor histórico. Después vienen <b>'+nn(t.media)+'</b>. '
+      + 'Las otras '+nn(t.baja)+' nunca cargaron y '+nn(t.sin_tel)+' no tienen teléfono.</div>'
+
+      + '<div class="notice" style="border-color:rgba(59,130,246,.5)"><b>A quién llamar primero.</b> '
+      + 'Salió de mirar quiénes volvieron de verdad: <b>todos</b> los que volvieron ya habían cargado alguna vez '
+      + '(contra 1 de cada 4 del resto), y al <b>42%</b> le habían rechazado una carga (contra 16%). '
+      + 'Un rechazo suele ser el motivo por el que se fueron, y eso se arregla hablando. '
+      + 'En cambio <b>hace cuánto se fue no sirve para elegir</b>: los que volvieron llevaban 54 días sin cargar y los que no, 52.</div>'
+
+      + '<div class="tableWrap"><table><thead>'
+      + '<tr><th rowspan="2">Oficina</th><th colspan="4" style="text-align:center">Cola por prioridad</th>'
+      +     '<th colspan="5" style="text-align:center">Trabajo de los operadores (14 días)</th><th rowspan="2"></th></tr>'
+      + '<tr><th style="text-align:right">Llamar 1º</th><th style="text-align:right">Valor</th>'
+      +     '<th style="text-align:right">Después</th><th style="text-align:right">Sin prioridad</th>'
+      +     '<th style="text-align:right">Trabajados</th><th style="text-align:right">Contactados</th>'
+      +     '<th style="text-align:right">Volvieron</th><th style="text-align:right">Tasa</th>'
+      +     '<th style="text-align:right">Hoy</th></tr>'
+      + '</thead><tbody>'+filas+'</tbody></table></div>'
+      + '<p class="small" style="color:var(--muted);margin-top:6px">'
+      + '<b>Llamar 1º</b>: tiene teléfono, ya cargó alguna vez y le rechazaron una carga. '
+      + '<b>Después</b>: tiene teléfono y ya cargó. <b>Sin prioridad</b>: nunca cargó. '
+      + '<b>Volvieron</b>: cargó después de que lo contactaron (no depende de que el operador lo marque).</p>';
+  };
+
+  const _old=window.showSection;
+  if(typeof _old==="function"){
+    window.showSection=function(name){
+      const r=_old.apply(this,arguments);
+      if(name==="recuperacion") setTimeout(function(){ try{ recupUnifCargar(); }catch(_e){} },140);
+      return r;
+    };
+  }
 })();
 </script>
 
