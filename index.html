@@ -1873,6 +1873,11 @@ testResolverAlias = async function(){
     try{ const bs=await supabaseClient.rpc("admin_get_bases",{p_session_token:tok}); window._basesFull=(!bs.error && Array.isArray(bs.data))?bs.data:[]; }catch(_e){ window._basesFull=window._basesFull||[]; }
     // Puestos AGRUPADOS: una fila por puesto real, no por cada variante escrita a mano.
     try{ const ps=await supabaseClient.rpc("admin_general_puestos_list",{p_session_token:tok}); window._puestosAgrup=(!ps.error && Array.isArray(ps.data))?ps.data:[]; }catch(_e){ window._puestosAgrup=window._puestosAgrup||[]; }
+    // Agrupación por marca: una oficina (ej: PROVINCIA PLATA) con varios puestos, cada
+    // uno con su propio código operativo (P9, P9B) pero mostrados juntos.
+    try{ const gr=await supabaseClient.from("nodo_oficina_grupos").select("pc_codigo,marca,puesto_label,orden");
+         const map={}; (gr.data||[]).forEach(function(x){ map[String(x.pc_codigo||"").toUpperCase()]=x; });
+         window._gruposOfi=map; }catch(_e){ window._gruposOfi=window._gruposOfi||{}; }
     // OBLIGATORIO antes de renderizar: de acá salen billeteras, operando, encargado y
     // Whaticket. Sin esta llamada _altasEstado queda vacío y esos cuatro chips muestran 0
     // aunque la oficina esté perfecta.
@@ -1899,7 +1904,8 @@ testResolverAlias = async function(){
     rutas.forEach(function(r){ const pc=String(r.pc_codigo||"").toUpperCase(); if(!pc)return; if(!grupos[pc])grupos[pc]={pc:pc,oficina_id:pc,aliases:[]}; grupos[pc].ruta=r; });
     const keys=Object.keys(grupos).sort();
     if(!keys.length){ cont.innerHTML='<div class="notice">No hay oficinas configuradas todavía.</div>'; return; }
-    cont.innerHTML=keys.map(function(pc){
+    const _cardByPc={};
+    keys.forEach(function(pc){
       const g=grupos[pc], r=g.ruta;
       // Un chip por PUESTO real (no por cada variante). Los códigos van aparte.
       const _agr=(window._puestosAgrup||[]).filter(function(x){return String(x.pc_codigo||"").toUpperCase()===String(pc).toUpperCase();});
@@ -1960,7 +1966,7 @@ testResolverAlias = async function(){
         + _bdg(promoOn,'🎁 Promo '+(promoOn?'ON':'OFF'))
         + _bdg(csvAgOn,'📋 CSV agentes '+(csvAgOn?('✓ '+csvAgN.toLocaleString()+(csvAgFecha?(' · '+csvAgFecha):'')):'✗'))
         + _bdg(csvWaOn,'💬 CSV whaticket '+(csvWaOn?('✓ '+csvWaN.toLocaleString()):'✗'));
-      return `<div class="item" style="display:block;margin-bottom:10px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><strong>${esc(_est.nombre||g.oficina_id||g.pc)} · ${esc(g.pc)}</strong><span style="font-size:12px;color:${falta.length?'#fca5a5':'#4ade80'}">${falta.length?('falta: '+esc(falta.join(", "))):'operativa'}</span><button class="red small" onclick="oficinaEliminar('${esc(g.pc)}')">Eliminar oficina</button></div>
+      _cardByPc[pc]=`<div class="item" style="display:block;margin-bottom:10px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><strong>${esc(_est.nombre||g.oficina_id||g.pc)} · ${esc(g.pc)}</strong><span style="font-size:12px;color:${falta.length?'#fca5a5':'#4ade80'}">${falta.length?('falta: '+esc(falta.join(", "))):'operativa'}</span><button class="red small" onclick="oficinaEliminar('${esc(g.pc)}')">Eliminar oficina</button></div>
         <div style="margin:6px 0">${badges}</div>
         <div class="row" style="display:flex;gap:6px;align-items:center;margin:6px 0"><input id="ofi_nom_${esc(g.pc)}" value="${esc((_est.nombre)||'')}" placeholder="Nombre de la oficina" style="flex:1"><button class="blue small" onclick="oficinaGuardarNombre('${esc(g.pc)}')">Guardar nombre</button></div>
         <div style="margin:6px 0;font-size:12px;color:#9aa">Portal: ${ruta}${(pcode||sub)?` <button class="small" onclick="oficinaCopiarLink('${pcode}','${sub}')">📋 Copiar link</button>`:""}</div>
@@ -1973,7 +1979,29 @@ testResolverAlias = async function(){
         ${chipsCod?`<div style="margin:6px 0;font-size:12px;color:#9aa">Códigos (no son puestos): ${chipsCod}</div>`:""}
         <div class="row" style="display:flex;gap:6px"><input id="ofi_addp_${esc(g.pc)}" placeholder="Nuevo puesto de Chunior (sin 'EN USO')" style="flex:1"><button class="blue small" onclick="oficinaAgregarPuesto('${esc(g.pc)}','${esc(g.oficina_id)}')">+ Puesto</button></div>
       </div>`;
-    }).join("");
+    });
+    // Agrupar por marca: las oficinas que comparten marca (misma PROVINCIA PLATA con
+    // Puesto 1 y 2) se muestran juntas bajo un encabezado; el resto van sueltas.
+    const _grp=window._gruposOfi||{}, _porMarca={}, _sueltas=[];
+    keys.forEach(function(pc){
+      const gg=_grp[pc];
+      if(gg && gg.marca){ (_porMarca[gg.marca]=_porMarca[gg.marca]||[]).push(pc); }
+      else _sueltas.push(pc);
+    });
+    let _html="";
+    Object.keys(_porMarca).sort().forEach(function(marca){
+      const pcs=_porMarca[marca].sort(function(a,b){ return ((_grp[a]||{}).orden||0)-((_grp[b]||{}).orden||0); });
+      _html += '<div class="item" style="display:block;margin-bottom:12px;background:#141a24;border:1px solid #2a3550;padding:12px">'
+        + '<div style="font-size:15px;font-weight:800;color:#c8d2e0;margin-bottom:10px">🏢 '+esc(marca)
+        + ' <span style="font-size:12px;color:#9aa;font-weight:600">· '+pcs.length+' puesto'+(pcs.length>1?'s':'')+'</span></div>'
+        + pcs.map(function(pc){
+            const lbl=(_grp[pc]||{}).puesto_label;
+            return (lbl?'<div style="font-size:12px;font-weight:700;color:#8fb3ff;margin:2px 0 4px">'+esc(lbl)+'</div>':'')+_cardByPc[pc];
+          }).join('')
+        + '</div>';
+    });
+    _html += _sueltas.map(function(pc){ return _cardByPc[pc]; }).join('');
+    cont.innerHTML=_html;
   };
   // Reemplaza al form "Crear/editar oficina" que estaba en la sección pcs.
   window.oficinaGuardarNombre=async function(pc){
