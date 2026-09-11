@@ -1790,6 +1790,10 @@ testResolverAlias = async function(){
       <div style="font-weight:700;margin:14px 0 6px">1 · Nombre de la oficina</div>
       <div class="row"><input id="ofi_oficina_id" placeholder="Ej: PEPEPLATA"><span style="font-size:11px;color:#9aa">Como se la conoce (el nombre del dueño o la agencia), sin espacios. El código del sistema se asigna solo, siguiendo la serie.</span></div>
 
+      <div style="font-weight:700;margin:14px 0 6px">¿Es un puesto de una marca? <span style="font-weight:400;color:#9aa">(opcional)</span></div>
+      <div class="notice" style="border-color:rgba(59,130,246,.5)">Si esta oficina es <b>otro puesto de una marca que ya manejás</b> (misma marca comercial, pero con su PC, billeteras y portal propios), poné la <b>marca</b> y la <b>etiqueta del puesto</b>. Se agrupan en la lista bajo la marca, cada uno independiente. <b>Dejalo vacío si es una oficina suelta.</b><br>Así no hace falta ningún "split" ni SQL: cada puesto independiente es su propia oficina y se agrupan por marca.</div>
+      <div class="grid2"><div class="row"><label>Marca (grupo)</label><input id="ofi_marca" placeholder="Ej: PROVINCIA PLATA"></div><div class="row"><label>Etiqueta del puesto</label><input id="ofi_puesto_label" placeholder="Ej: Puesto 2"></div></div>
+
       <div style="font-weight:700;margin:14px 0 6px">2 · Puestos de Chunior</div>
       <div class="notice" style="border-color:rgba(59,130,246,.5)"><b>Un puesto por renglón.</b> Cada renglón es un puesto distinto de Chunior — un subagente con su propia sesión. Una oficina puede tener varios: varias PCs, cada operador en el suyo, con sus billeteras.<br>
       Copiá el nombre <b>tal cual figura en Chunior</b>. <b>No escribas la versión "EN USO"</b>: se genera sola, y también aguanta que Chunior lo muestre con guiones, puntos o acentos.</div>
@@ -1887,6 +1891,9 @@ testResolverAlias = async function(){
       try{ await supabaseClient.rpc("admin_set_proxy",{p_session_token:tok,p_pc_codigo:pc,p_enabled:(gv("ofi_proxy_enabled")==="1"),p_protocol:gv("ofi_proxy_protocol")||"http",p_host:gv("ofi_proxy_host"),p_port:gv("ofi_proxy_port"),p_username:gv("ofi_proxy_user"),p_password:gv("ofi_proxy_pass"),p_bypass:gv("ofi_proxy_bypass")}); }catch(_e){ console.warn("proxy",_e); }
       // Promo de primer ingreso (on/off)
       try{ await supabaseClient.rpc("admin_general_set_promo",{p_session_token:tok,p_pc_codigo:pc,p_activa:(gv("ofi_promo")==="1")}); }catch(_e){ console.warn("promo",_e); }
+      // Marca / grupo (opcional): agrupa puestos independientes sin SQL ni split.
+      const _marca=gv("ofi_marca");
+      if(_marca){ try{ await supabaseClient.rpc("admin_oficina_set_grupo",{p_session_token:tok,p_pc_codigo:pc,p_marca:_marca,p_puesto_label:gv("ofi_puesto_label")||null,p_orden:null}); }catch(_e){ console.warn("grupo",_e); } }
       // Mismo criterio que el botón "Copiar link" de la lista, para no tener dos verdades.
       const _sub2=gv("ofi_subdominio").trim();
       const portalUrl=_sub2 ? ("https://"+_sub2+".portal-bet-300.com") : ("https://portal-bet-300.com/?r="+code);
@@ -1899,7 +1906,7 @@ testResolverAlias = async function(){
       out.innerHTML=`<div class="item" style="display:block"><strong>${aerr?"⚠️ Oficina creada con avisos":"✅ Oficina creada"}</strong>
         <span>Oficina <b>${esc(oficina_id)}</b> · código <b>${esc(pc)}</b> · ${aok} puesto(s)${aerr?(" · "+aerr+" con problema"):""}</span>
         <span>Link del portal: <code>${esc(portalUrl)}</code></span>${detHtml}
-        <div style="margin-top:12px;padding:12px;border:1px solid rgba(59,130,246,.4);border-radius:8px;background:rgba(59,130,246,.06)"><b style="font-size:13px">Para dejar ${esc(pc)} operativa, seguí estos pasos:</b><ol style="margin:8px 0 0;padding-left:18px;font-size:12px;line-height:1.7;color:#cbd5e1"><li><b>Billeteras:</b> abrí NODO en la PC del puesto y <b>sincronizá desde el panel</b>. Cargá CBU/alias <b>después</b> del primer sync — si los cargás antes, se duplican.</li><li><b>Encargado / operadores:</b> crealos en <b>Accesos al Admi</b>, asignados a ${esc(pc)}.</li><li><b>Proxy</b> (si la PC está fuera del país): host <code>arXX.proxy.nordvpn.com</code> · puerto <b>89</b> · usuario/clave de servicio de Nord. Va por cada puesto/PC.</li><li><b>Contactos:</b> si la oficina <b>no usa Whaticket</b>, cargá la base por <b>Importador → Conversor</b> (.vcf) o <b>Contactos Whaticket</b> (CSV). Ojo: al cargar base, el portal pasa a <b>lista cerrada</b> (solo entran los de la lista).</li><li><b>Token de Whaticket</b> (solo si la oficina sí usa WTK): lo carga alguien con acceso a Supabase.</li></ol><div style="margin-top:8px;font-size:11px;color:#9aa">¿Necesitás que cada puesto tenga <b>billeteras y portal separados</b> (no compartidos)? Eso todavía lo hacemos nosotros — avisanos.</div></div></div>`;
+        <div style="margin-top:12px;padding:12px;border:1px solid rgba(59,130,246,.4);border-radius:8px;background:rgba(59,130,246,.06)"><b style="font-size:13px">Para dejar ${esc(pc)} operativa, seguí estos pasos:</b><ol style="margin:8px 0 0;padding-left:18px;font-size:12px;line-height:1.7;color:#cbd5e1"><li><b>Billeteras:</b> abrí NODO en la PC del puesto y <b>sincronizá desde el panel</b>. Cargá CBU/alias <b>después</b> del primer sync — si los cargás antes, se duplican.</li><li><b>Encargado / operadores:</b> crealos en <b>Accesos al Admi</b>, asignados a ${esc(pc)}.</li><li><b>Proxy</b> (si la PC está fuera del país): host <code>arXX.proxy.nordvpn.com</code> · puerto <b>89</b> · usuario/clave de servicio de Nord. Va por cada puesto/PC.</li><li><b>Contactos:</b> si la oficina <b>no usa Whaticket</b>, cargá la base por <b>Importador → Conversor</b> (.vcf) o <b>Contactos Whaticket</b> (CSV). Ojo: al cargar base, el portal pasa a <b>lista cerrada</b> (solo entran los de la lista).</li><li><b>Token de Whaticket</b> (solo si la oficina sí usa WTK): lo carga alguien con acceso a Supabase.</li></ol><div style="margin-top:8px;font-size:11px;color:#9aa">¿Otro puesto de la misma marca, independiente (billeteras y portal propios)? Creá otra oficina igual y ponele la misma <b>marca</b> (paso opcional de arriba): se agrupan solos bajo la marca. Ya no hace falta SQL ni "split".</div></div></div>`;
       if(typeof toast==="function") toast(aerr?"Oficina creada con avisos":"Oficina creada",aerr?"err":"okb");
       try{ if(typeof fillPcSelects==="function") fillPcSelects(); }catch(_e){}
       try{ await oficinaListaCargar(); }catch(_e){}
@@ -2027,6 +2034,7 @@ testResolverAlias = async function(){
         <div class="row" style="display:flex;gap:6px;align-items:center;margin:6px 0"><input id="ofi_au_${esc(g.pc)}" autocomplete="off" placeholder="${agenteOk?'agente cargado ✓ (reescribí para cambiar)':'usuario agente'}" style="flex:1"><input id="ofi_ap_${esc(g.pc)}" type="password" autocomplete="new-password" placeholder="${agenteOk?'clave guardada 🔒':'clave agente 🔒'}" style="flex:1"><button class="blue small" onclick="oficinaGuardarAgente('${esc(g.pc)}')">Guardar agente</button></div>
         <div class="row" style="display:flex;gap:6px;align-items:center;margin:6px 0;flex-wrap:wrap"><span style="font-size:12px;color:#9aa">🌐</span><select id="ofi_pxen_${esc(g.pc)}" style="width:100px"><option value="0" ${pxOn?'':'selected'}>Proxy off</option><option value="1" ${pxOn?'selected':''}>Proxy on</option></select><input id="ofi_pxhost_${esc(g.pc)}" value="${pxHost}" autocomplete="off" placeholder="host" style="flex:1;min-width:110px"><input id="ofi_pxport_${esc(g.pc)}" value="${pxPort}" autocomplete="off" placeholder="puerto" style="width:75px"><select id="ofi_pxproto_${esc(g.pc)}" style="width:85px"><option value="http" ${pxProto==='socks5'?'':'selected'}>http</option><option value="socks5" ${pxProto==='socks5'?'selected':''}>socks5</option></select><input id="ofi_pxuser_${esc(g.pc)}" value="${pxUser}" autocomplete="off" placeholder="usuario" style="width:110px"><input id="ofi_pxpass_${esc(g.pc)}" type="password" autocomplete="new-password" placeholder="${_px?'clave guardada 🔒 (dejá vacío para no cambiar)':'clave 🔒'}" style="width:110px"><button class="blue small" onclick="oficinaGuardarProxy('${esc(g.pc)}')">Guardar proxy</button></div>
         <div style="margin:6px 0;font-size:12px">🎁 Promo primer ingreso: <b style="color:${promoOn?'#22c55e':'#fca5a5'}">${promoOn?'ACTIVADA':'desactivada'}</b> <button class="small" onclick="oficinaTogglePromo('${esc(g.pc)}',${promoOn?0:1})">${promoOn?'Desactivar':'Activar'}</button></div>
+        <div class="row" style="display:flex;gap:6px;align-items:center;margin:6px 0;flex-wrap:wrap"><span style="font-size:12px;color:#9aa">🏢 Marca/grupo</span><input id="ofi_marca_${esc(g.pc)}" value="${esc(((window._gruposOfi||{})[g.pc]||{}).marca||'')}" placeholder="Marca (agrupa puestos)" style="flex:1;min-width:120px"><input id="ofi_plabel_${esc(g.pc)}" value="${esc(((window._gruposOfi||{})[g.pc]||{}).puesto_label||'')}" placeholder="Etiqueta (ej: Puesto 2)" style="width:140px"><button class="blue small" onclick="oficinaGuardarGrupo('${esc(g.pc)}')">Guardar marca</button><button class="small" onclick="oficinaQuitarGrupo('${esc(g.pc)}')">Quitar</button></div>
         <div style="margin:6px 0">Puestos de Chunior: ${chips||'<span style="color:#fca5a5">ninguno</span>'}</div>
         ${chipsCod?`<div style="margin:6px 0;font-size:12px;color:#9aa">Códigos (no son puestos): ${chipsCod}</div>`:""}
         <div class="row" style="display:flex;gap:6px"><input id="ofi_addp_${esc(g.pc)}" placeholder="Nuevo puesto de Chunior (sin 'EN USO')" style="flex:1"><button class="blue small" onclick="oficinaAgregarPuesto('${esc(g.pc)}','${esc(g.oficina_id)}')">+ Puesto</button></div>
@@ -2066,6 +2074,29 @@ testResolverAlias = async function(){
       if(!data || data.ok===false) throw new Error((data&&data.mensaje)||"No se pudo guardar");
       if(typeof toast==="function") toast("Nombre guardado","okb");
       try{ if(typeof loadPcs==="function") await loadPcs(false); if(typeof fillPcSelects==="function") fillPcSelects(); }catch(_e){}
+      await oficinaListaCargar();
+    }catch(e){ if(typeof toast==="function") toast("Error: "+(e.message||e),"err"); }
+  };
+  window.oficinaGuardarGrupo=async function(pc){
+    const marca=(($id("ofi_marca_"+pc)||{}).value||"").trim();
+    const label=(($id("ofi_plabel_"+pc)||{}).value||"").trim();
+    if(!marca){ if(typeof toast==="function") toast("Poné una marca (o usá Quitar)","err"); return; }
+    const tok=(typeof requireAdminToken==="function")?requireAdminToken():null;
+    try{
+      const {data,error}=await supabaseClient.rpc("admin_oficina_set_grupo",{p_session_token:tok,p_pc_codigo:pc,p_marca:marca,p_puesto_label:label||null,p_orden:null});
+      if(error) throw error;
+      if(data && data.ok===false) throw new Error(data.mensaje||"No se pudo guardar");
+      if(typeof toast==="function") toast("Marca guardada","okb");
+      await oficinaListaCargar();
+    }catch(e){ if(typeof toast==="function") toast("Error: "+(e.message||e),"err"); }
+  };
+  window.oficinaQuitarGrupo=async function(pc){
+    if(!confirm("¿Sacar "+pc+" de su marca/grupo? Queda como oficina suelta (no se borra nada más).")) return;
+    const tok=(typeof requireAdminToken==="function")?requireAdminToken():null;
+    try{
+      const {error}=await supabaseClient.rpc("admin_oficina_set_grupo",{p_session_token:tok,p_pc_codigo:pc,p_marca:"",p_puesto_label:null,p_orden:null});
+      if(error) throw error;
+      if(typeof toast==="function") toast("Sacada del grupo","okb");
       await oficinaListaCargar();
     }catch(e){ if(typeof toast==="function") toast("Error: "+(e.message||e),"err"); }
   };
