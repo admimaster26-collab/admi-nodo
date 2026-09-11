@@ -1807,8 +1807,8 @@ testResolverAlias = async function(){
       <div class="row"><label>🎁 Promo de primer ingreso</label><select id="ofi_promo"><option value="0">Desactivada</option><option value="1">Activada (bono al primer ingreso)</option></select></div>
       <div class="row"><label>🌐 Proxy de la oficina</label><select id="ofi_proxy_enabled"><option value="0">Sin proxy (salida directa)</option><option value="1">Usar proxy</option></select></div>
       <div class="grid2">
-        <div class="row"><label>Proxy host</label><input id="ofi_proxy_host" autocomplete="off" placeholder="ej: 91.212.103.195"></div>
-        <div class="row"><label>Proxy puerto</label><input id="ofi_proxy_port" autocomplete="off" placeholder="ej: 1337"></div>
+        <div class="row"><label>Proxy host</label><input id="ofi_proxy_host" autocomplete="off" placeholder="ej: https://ar86.proxy.nordvpn.com"><span style="font-size:11px;color:#9aa">NordVPN: usá el nombre <b>con .proxy</b> (arXX<b>.proxy</b>.nordvpn.com). Sin el ".proxy" Agentes queda en blanco.</span></div>
+        <div class="row"><label>Proxy puerto</label><input id="ofi_proxy_port" autocomplete="off" placeholder="ej: 89 (NordVPN)"></div>
         <div class="row"><label>Protocolo</label><select id="ofi_proxy_protocol"><option value="http">http</option><option value="socks5">socks5</option></select></div>
         <div class="row"><label>Bypass</label><input id="ofi_proxy_bypass" autocomplete="off" placeholder="&lt;local&gt;"></div>
         <div class="row"><label>Proxy usuario</label><input id="ofi_proxy_user" autocomplete="off" placeholder="usuario del proxy"></div>
@@ -1827,10 +1827,14 @@ testResolverAlias = async function(){
 
   window.oficinaWizardCrear=async function(){
     const out=$id("ofi_resultado");
-    const oficina_id=gv("ofi_oficina_id").toUpperCase();
+    const oficina_id=gv("ofi_oficina_id").toUpperCase().replace(/\s+/g,"");
     const nombre=oficina_id;
     const code=randomCode();
     if(!oficina_id){ out.innerHTML='<div class="notice" style="border-color:rgba(239,68,68,.7);color:#fca5a5">Falta el <b>nombre de la oficina</b> (paso 1).</div>'; return; }
+    // Guarda del proxy: el trap de NordVPN (host sin ".proxy" = Agentes en pantalla en blanco).
+    const _pxOn=gv("ofi_proxy_enabled")==="1", _pxHost=gv("ofi_proxy_host");
+    if(_pxOn && !_pxHost){ out.innerHTML='<div class="notice" style="border-color:rgba(239,68,68,.7);color:#fca5a5">Activaste el <b>proxy</b> pero no pusiste el <b>host</b>. Completalo o desactivá el proxy.</div>'; return; }
+    if(_pxOn && /nordvpn/i.test(_pxHost) && !/\.proxy\.nordvpn\.com/i.test(_pxHost)){ out.innerHTML='<div class="notice" style="border-color:rgba(239,68,68,.7);color:#fca5a5">El host de NordVPN tiene que ser <b>arXX.proxy.nordvpn.com</b> (con <b>.proxy</b>). Sin el ".proxy" Agentes queda en <b>pantalla en blanco</b>. Corregí el host y volvé a crear.</div>'; return; }
     const tok=(typeof requireAdminToken==="function")?requireAdminToken():null;
     const btn=$id("ofi_btn"); if(btn){btn.disabled=true;btn.textContent="Creando...";}
     let pc="";
@@ -1895,7 +1899,7 @@ testResolverAlias = async function(){
       out.innerHTML=`<div class="item" style="display:block"><strong>${aerr?"⚠️ Oficina creada con avisos":"✅ Oficina creada"}</strong>
         <span>Oficina <b>${esc(oficina_id)}</b> · código <b>${esc(pc)}</b> · ${aok} puesto(s)${aerr?(" · "+aerr+" con problema"):""}</span>
         <span>Link del portal: <code>${esc(portalUrl)}</code></span>${detHtml}
-        <div style="margin-top:10px;font-size:12px;color:#9aa"><b>Falta todavía:</b> sincronizar las <b>billeteras</b> desde el panel NODO · dar de alta los <b>operadores</b> · pedir el <b>token de Whaticket</b>. Mirá el estado arriba.</div></div>`;
+        <div style="margin-top:12px;padding:12px;border:1px solid rgba(59,130,246,.4);border-radius:8px;background:rgba(59,130,246,.06)"><b style="font-size:13px">Para dejar ${esc(pc)} operativa, seguí estos pasos:</b><ol style="margin:8px 0 0;padding-left:18px;font-size:12px;line-height:1.7;color:#cbd5e1"><li><b>Billeteras:</b> abrí NODO en la PC del puesto y <b>sincronizá desde el panel</b>. Cargá CBU/alias <b>después</b> del primer sync — si los cargás antes, se duplican.</li><li><b>Encargado / operadores:</b> crealos en <b>Accesos al Admi</b>, asignados a ${esc(pc)}.</li><li><b>Proxy</b> (si la PC está fuera del país): host <code>arXX.proxy.nordvpn.com</code> · puerto <b>89</b> · usuario/clave de servicio de Nord. Va por cada puesto/PC.</li><li><b>Contactos:</b> si la oficina <b>no usa Whaticket</b>, cargá la base por <b>Importador → Conversor</b> (.vcf) o <b>Contactos Whaticket</b> (CSV). Ojo: al cargar base, el portal pasa a <b>lista cerrada</b> (solo entran los de la lista).</li><li><b>Token de Whaticket</b> (solo si la oficina sí usa WTK): lo carga alguien con acceso a Supabase.</li></ol><div style="margin-top:8px;font-size:11px;color:#9aa">¿Necesitás que cada puesto tenga <b>billeteras y portal separados</b> (no compartidos)? Eso todavía lo hacemos nosotros — avisanos.</div></div></div>`;
       if(typeof toast==="function") toast(aerr?"Oficina creada con avisos":"Oficina creada",aerr?"err":"okb");
       try{ if(typeof fillPcSelects==="function") fillPcSelects(); }catch(_e){}
       try{ await oficinaListaCargar(); }catch(_e){}
