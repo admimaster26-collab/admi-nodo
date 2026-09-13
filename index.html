@@ -2451,7 +2451,7 @@ testResolverAlias = async function(){
         '<div class="sub">'+(o.oficina ? esc(o.oficina)+' · ' : '')+esc(hace(o.hace_min))+'</div>'+
         (o.versiones_distintas
           ? '<div class="sub" style="color:#f0b429">⚠️ versiones distintas</div>' : '')+
-        '<div class="ops">'+nn(o.ops_total)+' ops · '+money(o.neto)+'</div>'+
+        '<div class="ops">'+nn((+o.cargas||0)+(+o.retiros||0))+' ops · '+money(o.neto)+'</div>'+
         (o.pend_total ? '<div class="pend'+(o.pend_min>=120?' viejo':'')+'">⏳ '+nn(o.pend_total)+
            ' pendiente'+(o.pend_total===1?'':'s')+' · '+esc(hace(o.pend_min))+'</div>' : '')+
       '</div>';
@@ -2459,10 +2459,13 @@ testResolverAlias = async function(){
     var cont = $('tbOnline');
     if(cont) cont.innerHTML = strip || '<span class="muted">Sin oficinas con actividad.</span>';
 
-    var T = {ops:0,cargas:0,cm:0,retiros:0,rm:0,bonos:0,bm:0,nc:0,nv:0,neto:0,
+    var T = {ops:0,otras:0,cargas:0,cm:0,retiros:0,rm:0,bonos:0,bm:0,nc:0,nv:0,neto:0,
              pe:0,pc:0,pr:0,ps:0,pmin:0};
     vis.forEach(function(o){
-      T.ops += +o.ops_total||0; T.cargas += +o.cargas||0; T.cm += +o.cargas_monto||0;
+      // "Operaciones" = cargas + retiros (para que coincida con Chunior). Las "otras"
+      // (reset clave, consulta, mov/cambio de billetera, etc.) van aparte como gestiones.
+      T.ops += (+o.cargas||0)+(+o.retiros||0); T.otras += +o.otras||0;
+      T.cargas += +o.cargas||0; T.cm += +o.cargas_monto||0;
       T.retiros += +o.retiros||0; T.rm += +o.retiros_monto||0;
       T.bonos += +o.bonos||0; T.bm += +o.bonos_monto||0;
       T.nc += +o.nuevos_carga||0; T.nv += +o.nuevos_vinculo||0; T.neto += +o.neto||0;
@@ -2483,7 +2486,7 @@ testResolverAlias = async function(){
     set('tbRetiros', money(T.rm));  set('tbRetirosN', nn(T.retiros)+' operaciones');
     set('tbNeto', money(T.neto));
     set('tbOps', nn(T.ops));
-    set('tbOpsSub', f ? 'en '+f : 'todas las oficinas');
+    set('tbOpsSub', 'cargas + retiros'+(T.otras ? ' · +'+nn(T.otras)+' gestiones' : '')+(f ? ' · '+f : ''));
     set('tbNuevos', nn(T.nc));
     set('tbNuevosSub', nn(T.nv)+' vinculados nuevos');
     set('tbBonos', money(T.bm));    set('tbBonosN', nn(T.bonos)+' otorgados');
@@ -2512,7 +2515,7 @@ testResolverAlias = async function(){
                 nn(o.pend_carga)+' carga · '+nn(o.pend_retiro)+' retiro · '+nn(o.pend_soporte)+' soporte">'+
                 nn(o.pend_total)+'</span><br><span class="muted" style="font-size:10.5px">'+esc(hace(o.pend_min))+'</span>'
               : '<span class="muted">—</span>')+'</td>'+
-          '<td class="num">'+nn(o.ops_total)+'</td>'+
+          '<td class="num">'+nn((+o.cargas||0)+(+o.retiros||0))+'</td>'+
           '<td class="num">'+nn(o.cargas)+'</td>'+
           '<td class="num">'+money(o.cargas_monto)+'</td>'+
           '<td class="num">'+nn(o.retiros)+'</td>'+
