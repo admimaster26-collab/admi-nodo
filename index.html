@@ -1785,41 +1785,15 @@ testResolverAlias = async function(){
     }
     const html=`<section id="section-altaofi" class="section">
     <div class="card"><div class="card-h"><h3>🏢 Alta de oficina nueva</h3></div><div class="card-b">
-      <div class="notice"><b>Qué hace este formulario:</b> crea la oficina, su link del portal y sus puestos de Chunior. Después de crearla quedan 3 cosas que <b>no</b> se hacen desde acá: las <b>billeteras</b> (se sincronizan desde el panel NODO), los <b>operadores</b> (sección Operadores) y el <b>token de Whaticket</b> (lo carga alguien con acceso a Supabase).</div>
+      <div class="notice">Poné el <b>nombre de la oficina</b> y agregá sus <b>puestos</b> (uno por cada PC / subagente de Chunior). El sistema crea todo solo: cada puesto queda como su propia PC, con su <b>portal</b> y su <b>proxy/agente</b>, agrupados bajo el nombre de la oficina. Las <b>billeteras</b> se sincronizan después desde el panel de cada puesto.</div>
 
-      <div style="font-weight:700;margin:14px 0 6px">1 · Nombre de la oficina</div>
-      <div class="row"><input id="ofi_oficina_id" placeholder="Ej: PEPEPLATA"><span style="font-size:11px;color:#9aa">Como se la conoce (el nombre del dueño o la agencia), sin espacios. El código del sistema se asigna solo, siguiendo la serie.</span></div>
+      <div class="row"><label>Nombre de la oficina</label><input id="ofi_oficina_id" placeholder="Ej: DERQUIPLATA"><span style="font-size:11px;color:#9aa">Como se la conoce (dueño o agencia), sin espacios. El código interno lo asigna el sistema.</span></div>
 
-      <div style="font-weight:700;margin:14px 0 6px">¿Es un puesto de una marca? <span style="font-weight:400;color:#9aa">(opcional)</span></div>
-      <div class="notice" style="border-color:rgba(59,130,246,.5)">Si esta oficina es <b>otro puesto de una marca que ya manejás</b> (misma marca comercial, pero con su PC, billeteras y portal propios), poné la <b>marca</b> y la <b>etiqueta del puesto</b>. Se agrupan en la lista bajo la marca, cada uno independiente. <b>Dejalo vacío si es una oficina suelta.</b><br>Así no hace falta ningún "split" ni SQL: cada puesto independiente es su propia oficina y se agrupan por marca.</div>
-      <div class="grid2"><div class="row"><label>Marca (grupo)</label><input id="ofi_marca" placeholder="Ej: PROVINCIA PLATA"></div><div class="row"><label>Etiqueta del puesto</label><input id="ofi_puesto_label" placeholder="Ej: Puesto 2"></div></div>
+      <div style="font-weight:700;margin:16px 0 6px">Puestos</div>
+      <div id="ofi_puestos"></div>
+      <button class="blue small" type="button" onclick="ofiAgregarPuesto()">+ Agregar puesto</button>
 
-      <div style="font-weight:700;margin:14px 0 6px">2 · Puestos de Chunior</div>
-      <div class="notice" style="border-color:rgba(59,130,246,.5)"><b>Un puesto por renglón.</b> Cada renglón es un puesto distinto de Chunior — un subagente con su propia sesión. Una oficina puede tener varios: varias PCs, cada operador en el suyo, con sus billeteras.<br>
-      Copiá el nombre <b>tal cual figura en Chunior</b>. <b>No escribas la versión "EN USO"</b>: se genera sola, y también aguanta que Chunior lo muestre con guiones, puntos o acentos.</div>
-      <div class="row"><textarea id="ofi_aliases" rows="4" placeholder="PEPE GRAL&#10;PEPE CAJA 2&#10;PEPE CAJA 3"></textarea></div>
-
-      <div style="font-weight:700;margin:14px 0 6px">3 · Dirección del portal</div>
-      <div class="row"><label>Subdominio</label><input id="ofi_subdominio" placeholder="Ej: pepe"><span style="font-size:11px;color:#9aa">Es la dirección que se le pasa al jugador. Si se deja vacío, igual queda un link largo que funciona.</span></div>
-
-      <div style="font-weight:700;margin:14px 0 6px">4 · Acceso al backoffice</div>
-      <div class="grid2">
-        <div class="row"><label>Usuario de agente (Casinodrex)</label><input id="ofi_agente_user" autocomplete="off" placeholder="usuario del agente"></div>
-        <div class="row"><label>Clave de agente</label><input id="ofi_agente_pass" type="password" autocomplete="new-password" placeholder="clave del agente (queda oculta)"></div>
-      </div>
-      <div class="notice" style="margin-top:6px">🔒 Las credenciales de agente quedan blindadas: el operador no las ve ni las escribe — solo se auto-loguea al backoffice.</div>
-      <div class="row"><label>🎁 Promo de primer ingreso</label><select id="ofi_promo"><option value="0">Desactivada</option><option value="1">Activada (bono al primer ingreso)</option></select></div>
-      <div class="row"><label>🌐 Proxy de la oficina</label><select id="ofi_proxy_enabled"><option value="0">Sin proxy (salida directa)</option><option value="1">Usar proxy</option></select></div>
-      <div class="grid2">
-        <div class="row"><label>Proxy host</label><input id="ofi_proxy_host" autocomplete="off" placeholder="ej: https://ar86.proxy.nordvpn.com"><span style="font-size:11px;color:#9aa">NordVPN: usá el nombre <b>con .proxy</b> (arXX<b>.proxy</b>.nordvpn.com). Sin el ".proxy" Agentes queda en blanco.</span></div>
-        <div class="row"><label>Proxy puerto</label><input id="ofi_proxy_port" autocomplete="off" placeholder="ej: 89 (NordVPN)"></div>
-        <div class="row"><label>Protocolo</label><select id="ofi_proxy_protocol"><option value="http">http</option><option value="socks5">socks5</option></select></div>
-        <div class="row"><label>Bypass</label><input id="ofi_proxy_bypass" autocomplete="off" placeholder="&lt;local&gt;"></div>
-        <div class="row"><label>Proxy usuario</label><input id="ofi_proxy_user" autocomplete="off" placeholder="usuario del proxy"></div>
-        <div class="row"><label>Proxy clave</label><input id="ofi_proxy_pass" type="password" autocomplete="new-password" placeholder="clave del proxy 🔒"></div>
-      </div>
-      <div class="notice" style="margin-top:6px">🌐 El proxy se aplica en la app del operador al loguearse en Chunior. La clave queda blindada (el operador no la ve).</div>
-      <div class="actions"><button class="primary" id="ofi_btn" onclick="oficinaWizardCrear()">Crear oficina</button></div>
+      <div class="actions" style="margin-top:14px"><button class="primary" id="ofi_btn" onclick="oficinaWizardCrear()">Crear oficina</button></div>
       <div id="ofi_resultado" style="margin-top:12px"></div>
     </div></div>
     <div class="card"><div class="card-h"><h3>Oficinas existentes</h3><button class="blue small" onclick="oficinaListaCargar()">Actualizar</button></div><div class="card-b"><div id="ofi_lista"><div class="notice">Abrí esta sección logueado para ver las oficinas y sus puestos.</div></div></div></div>
@@ -1827,87 +1801,83 @@ testResolverAlias = async function(){
     const ref=$id("section-config")||$id("section-historial");
     if(ref) ref.insertAdjacentHTML("beforebegin", html);
     else document.querySelector("main")?.insertAdjacentHTML("beforeend", html);
+    try{ if($id("ofi_puestos") && !$id("ofi_puestos").querySelector(".ofi-puesto") && typeof ofiAgregarPuesto==="function") ofiAgregarPuesto(); }catch(_e){}
   }
+
+  // ── Puestos dinámicos del alta ─────────────────────────────────────────────
+  function ofiPuestoHtml(n){
+    return `<div class="ofi-puesto mp-box" style="border:1px solid #2a3550;border-radius:8px;padding:12px;margin:8px 0">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <b class="ofi-puesto-title">Puesto ${n}</b>
+        <button class="small danger ofi-quitar" type="button" onclick="ofiQuitarPuesto(this)">Quitar</button>
+      </div>
+      <div class="grid2">
+        <div class="row"><label>Subagente de Chunior</label><input class="pu-sub" placeholder="Ej: DERPC0${n}" autocomplete="off"></div>
+        <div class="row"><label>Link (subdominio)</label><input class="pu-subdom" placeholder="Ej: der${n>1?n:''}" autocomplete="off"></div>
+      </div>
+      <div class="row" style="margin:6px 0"><label>🌐 Proxy</label><select class="pu-pxen"><option value="0">Sin proxy</option><option value="1">Usar proxy</option></select></div>
+      <div class="grid2">
+        <div class="row"><label>Proxy host</label><input class="pu-pxhost" placeholder="ar86.proxy.nordvpn.com" autocomplete="off"></div>
+        <div class="row"><label>Puerto</label><input class="pu-pxport" placeholder="89" autocomplete="off"></div>
+        <div class="row"><label>Protocolo</label><select class="pu-pxproto"><option value="http">http</option><option value="socks5">socks5</option></select></div>
+        <div class="row"><label>Proxy usuario</label><input class="pu-pxuser" autocomplete="off"></div>
+        <div class="row"><label>Proxy clave</label><input class="pu-pxpass" type="password" autocomplete="new-password"></div>
+      </div>
+      <div class="grid2" style="margin-top:6px">
+        <div class="row"><label>Agente usuario</label><input class="pu-aguser" autocomplete="off" placeholder="usuario Casinodrex"></div>
+        <div class="row"><label>Agente clave</label><input class="pu-agpass" type="password" autocomplete="new-password" placeholder="clave (queda oculta) 🔒"></div>
+      </div>
+    </div>`;
+  }
+  window.ofiRenumerarPuestos=function(){
+    const cont=$id("ofi_puestos"); if(!cont) return;
+    const items=cont.querySelectorAll(".ofi-puesto");
+    items.forEach(function(el,i){ const t=el.querySelector(".ofi-puesto-title"); if(t) t.textContent="Puesto "+(i+1); const q=el.querySelector(".ofi-quitar"); if(q) q.style.display=(items.length>1?"":"none"); });
+  };
+  window.ofiAgregarPuesto=function(){
+    const cont=$id("ofi_puestos"); if(!cont) return;
+    cont.insertAdjacentHTML("beforeend", ofiPuestoHtml(cont.querySelectorAll(".ofi-puesto").length+1));
+    ofiRenumerarPuestos();
+  };
+  window.ofiQuitarPuesto=function(btn){
+    const box=btn.closest(".ofi-puesto"); if(box) box.remove(); ofiRenumerarPuestos();
+  };
 
   window.oficinaWizardCrear=async function(){
     const out=$id("ofi_resultado");
-    const oficina_id=gv("ofi_oficina_id").toUpperCase().replace(/\s+/g,"");
-    const nombre=oficina_id;
-    const code=randomCode();
-    if(!oficina_id){ out.innerHTML='<div class="notice" style="border-color:rgba(239,68,68,.7);color:#fca5a5">Falta el <b>nombre de la oficina</b> (paso 1).</div>'; return; }
-    // Guarda del proxy: el trap de NordVPN (host sin ".proxy" = Agentes en pantalla en blanco).
-    const _pxOn=gv("ofi_proxy_enabled")==="1", _pxHost=gv("ofi_proxy_host");
-    if(_pxOn && !_pxHost){ out.innerHTML='<div class="notice" style="border-color:rgba(239,68,68,.7);color:#fca5a5">Activaste el <b>proxy</b> pero no pusiste el <b>host</b>. Completalo o desactivá el proxy.</div>'; return; }
-    if(_pxOn && /nordvpn/i.test(_pxHost) && !/\.proxy\.nordvpn\.com/i.test(_pxHost)){ out.innerHTML='<div class="notice" style="border-color:rgba(239,68,68,.7);color:#fca5a5">El host de NordVPN tiene que ser <b>arXX.proxy.nordvpn.com</b> (con <b>.proxy</b>). Sin el ".proxy" Agentes queda en <b>pantalla en blanco</b>. Corregí el host y volvé a crear.</div>'; return; }
+    const nombre=gv("ofi_oficina_id").toUpperCase().replace(/\s+/g,"");
+    if(!nombre){ out.innerHTML='<div class="notice" style="border-color:rgba(239,68,68,.7);color:#fca5a5">Falta el <b>nombre de la oficina</b>.</div>'; return; }
+    const boxes=[...document.querySelectorAll("#ofi_puestos .ofi-puesto")];
+    const puestos=[];
+    for(let i=0;i<boxes.length;i++){
+      const b=boxes[i], g=function(sel){ const e=b.querySelector(sel); return (e&&e.value||"").trim(); };
+      const sub=g(".pu-sub").toUpperCase();
+      if(!sub) continue; // puesto vacío → lo salteamos
+      const pxen=(b.querySelector(".pu-pxen")||{}).value==="1", pxhost=g(".pu-pxhost");
+      if(pxen && !pxhost){ out.innerHTML='<div class="notice" style="border-color:rgba(239,68,68,.7);color:#fca5a5">El <b>Puesto '+(i+1)+'</b> tiene el proxy activado pero sin <b>host</b>.</div>'; return; }
+      if(pxen && /nordvpn/i.test(pxhost) && !/\.proxy\.nordvpn\.com/i.test(pxhost)){ out.innerHTML='<div class="notice" style="border-color:rgba(239,68,68,.7);color:#fca5a5">El proxy NordVPN del <b>Puesto '+(i+1)+'</b> tiene que ser <b>arXX.proxy.nordvpn.com</b> (con <b>.proxy</b>). Sin eso, Agentes queda en <b>pantalla en blanco</b>.</div>'; return; }
+      puestos.push({ subagente:sub, subdominio:g(".pu-subdom"),
+        proxy_enabled:pxen, proxy_host:pxhost, proxy_port:g(".pu-pxport"),
+        proxy_protocol:((b.querySelector(".pu-pxproto")||{}).value||"http"),
+        proxy_user:g(".pu-pxuser"), proxy_pass:g(".pu-pxpass"),
+        agente_user:g(".pu-aguser"), agente_pass:g(".pu-agpass") });
+    }
+    if(!puestos.length){ out.innerHTML='<div class="notice" style="border-color:rgba(239,68,68,.7);color:#fca5a5">Cargá al menos un <b>puesto</b> con su subagente de Chunior.</div>'; return; }
     const tok=(typeof requireAdminToken==="function")?requireAdminToken():null;
     const btn=$id("ofi_btn"); if(btn){btn.disabled=true;btn.textContent="Creando...";}
-    let pc="";
     try{
-      // 0) La oficina en sí, y el código sale de acá: la RPC sigue la serie (P7 -> P8).
-      //    Sin este paso la oficina no aparece en ningún selector del Admi.
-      {
-        const r=await supabaseClient.rpc("admin_general_crear_oficina",{p_session_token:tok,p_pc_codigo:null,p_nombre:nombre,p_descripcion:oficina_id});
-        if(r.error) throw r.error;
-        if(!r.data || r.data.ok===false) throw new Error((r.data&&r.data.mensaje)||"No se pudo crear la oficina");
-        pc=r.data.codigo;
-      }
-      // 1) Ruta pública del portal
-      // El link de la plataforma y el WhatsApp no los lee ni el portal ni el panel:
-      // se dejan vacíos y la RPC de resolución aplica su propio default.
-      await rpcRowsSafe("admin_general_guardar_ruta",{p_session_token:tok,p_id:null,p_pc_codigo:pc,p_public_code:code,p_nombre_publico:nombre,p_link_plataforma:"",p_whatsapp_numero:"",p_activo:true},async()=>{
-        const r=await supabaseClient.from("landing_rutas_publicas").insert([{pc_codigo:pc,public_code:code,nombre_publico:nombre,activo:true}]);
-        if(r.error) throw r.error; return [];
-      });
-      // 1b) Subdominio de producción (opcional). Mirar .error (la RPC no tira excepción).
-      const _sub=gv("ofi_subdominio");
-      if(_sub){
-        let _subErr=null;
-        try{ const _r=await supabaseClient.rpc("admin_general_set_subdominio",{p_session_token:tok,p_pc_codigo:pc,p_subdominio:_sub,p_host:""}); if(_r&&_r.error) _subErr=_r.error; }catch(_e){ _subErr=_e; }
-        if(_subErr){ console.warn("subdominio",_subErr); toast("⚠️ Oficina creada, pero el SUBDOMINIO no se guardó: "+((_subErr&&_subErr.message)||_subErr),"err"); }
-      }
-      // 2) Puestos de Chunior. Cada renglón = un puesto (subagente); la variante
-      //    "EN USO" la genera la RPC. Los códigos (pc / nombre de oficina) van aparte:
-      //    no son puestos, son atajos para que el panel resuelva por código.
-      const nombres=gv("ofi_aliases").split(/[\n,]+/).map(s=>s.trim()).filter(Boolean);
-      let aok=0, aerr=0, puestosDetalle=[];
-      if(nombres.length){
-        const r=await supabaseClient.rpc("admin_general_guardar_puestos_lote",{p_session_token:tok,p_pc_codigo:pc,p_nombres:nombres,p_observaciones:"Alta de oficina"});
-        if(r.error) throw r.error;
-        puestosDetalle=r.data||[];
-        puestosDetalle.forEach(function(x){ if(x.estado==="choque") aerr++; else aok++; });
-      }
-      for(const a of [...new Set([pc, oficina_id].map(s=>s.toUpperCase()))]){
-        try{
-          await rpcRowsSafe("admin_general_guardar_alias",{p_session_token:tok,p_id:null,p_alias_codigo:a,p_oficina_id:oficina_id,p_pc_codigo_compat:pc,p_activa:true,p_observaciones:"Código de la oficina (no es un puesto)"},async()=>{
-            const r=await supabaseClient.from("nodo_oficina_aliases").insert([{alias_codigo:a,oficina_id:oficina_id,pc_codigo_compat:pc,activa:true,observaciones:"Código de la oficina (no es un puesto)"}]);
-            if(r.error) throw r.error; return [];
-          });
-        }catch(e){ console.warn("codigo",a,e.message||e); }
-      }
-      // Credenciales de agente (blindadas) si se cargaron
-      const _au=gv("ofi_agente_user"), _ap=gv("ofi_agente_pass");
-      if(_au||_ap){ try{ await supabaseClient.rpc("admin_set_agente_credenciales",{p_session_token:tok,p_pc_codigo:pc,p_usuario:_au,p_clave:_ap}); }catch(_e){ console.warn("agente cred",_e); } }
-      // Proxy de la oficina (opcional, blindado)
-      try{ await supabaseClient.rpc("admin_set_proxy",{p_session_token:tok,p_pc_codigo:pc,p_enabled:(gv("ofi_proxy_enabled")==="1"),p_protocol:gv("ofi_proxy_protocol")||"http",p_host:gv("ofi_proxy_host"),p_port:gv("ofi_proxy_port"),p_username:gv("ofi_proxy_user"),p_password:gv("ofi_proxy_pass"),p_bypass:gv("ofi_proxy_bypass")}); }catch(_e){ console.warn("proxy",_e); }
-      // Promo de primer ingreso (on/off)
-      try{ await supabaseClient.rpc("admin_general_set_promo",{p_session_token:tok,p_pc_codigo:pc,p_activa:(gv("ofi_promo")==="1")}); }catch(_e){ console.warn("promo",_e); }
-      // Marca / grupo (opcional): agrupa puestos independientes sin SQL ni split.
-      const _marca=gv("ofi_marca");
-      if(_marca){ try{ await supabaseClient.rpc("admin_oficina_set_grupo",{p_session_token:tok,p_pc_codigo:pc,p_marca:_marca,p_puesto_label:gv("ofi_puesto_label")||null,p_orden:null}); }catch(_e){ console.warn("grupo",_e); } }
-      // Mismo criterio que el botón "Copiar link" de la lista, para no tener dos verdades.
-      const _sub2=gv("ofi_subdominio").trim();
-      const portalUrl=_sub2 ? ("https://"+_sub2+".portal-bet-300.com") : ("https://portal-bet-300.com/?r="+code);
-      const _ico={creado:"✅",completado:"✅",ya_existia:"➖",repetido:"➖",choque:"⛔"};
-      const detHtml=puestosDetalle.length
-        ? `<div style="margin-top:8px">${puestosDetalle.map(function(x){
-            return `<div style="font-size:12px;margin:3px 0;color:${x.estado==="choque"?"#fca5a5":"#cbd5e1"}">${_ico[x.estado]||"•"} <b>${esc(x.puesto)}</b> — ${esc(x.detalle)}</div>`;
-          }).join("")}</div>`
-        : `<div style="margin-top:8px;font-size:12px;color:#fca5a5">⚠️ No cargaste ningún puesto. Sin al menos uno, el panel no sabe a qué oficina mandar las cargas.</div>`;
-      out.innerHTML=`<div class="item" style="display:block"><strong>${aerr?"⚠️ Oficina creada con avisos":"✅ Oficina creada"}</strong>
-        <span>Oficina <b>${esc(oficina_id)}</b> · código <b>${esc(pc)}</b> · ${aok} puesto(s)${aerr?(" · "+aerr+" con problema"):""}</span>
-        <span>Link del portal: <code>${esc(portalUrl)}</code></span>${detHtml}
-        <div style="margin-top:12px;padding:12px;border:1px solid rgba(59,130,246,.4);border-radius:8px;background:rgba(59,130,246,.06)"><b style="font-size:13px">Para dejar ${esc(pc)} operativa, seguí estos pasos:</b><ol style="margin:8px 0 0;padding-left:18px;font-size:12px;line-height:1.7;color:#cbd5e1"><li><b>Billeteras:</b> abrí NODO en la PC del puesto y <b>sincronizá desde el panel</b>. Cargá CBU/alias <b>después</b> del primer sync — si los cargás antes, se duplican.</li><li><b>Encargado / operadores:</b> crealos en <b>Accesos al Admi</b>, asignados a ${esc(pc)}.</li><li><b>Proxy</b> (si la PC está fuera del país): host <code>arXX.proxy.nordvpn.com</code> · puerto <b>89</b> · usuario/clave de servicio de Nord. Va por cada puesto/PC.</li><li><b>Contactos:</b> si la oficina <b>no usa Whaticket</b>, cargá la base por <b>Importador → Conversor</b> (.vcf) o <b>Contactos Whaticket</b> (CSV). Ojo: al cargar base, el portal pasa a <b>lista cerrada</b> (solo entran los de la lista).</li><li><b>Token de Whaticket</b> (solo si la oficina sí usa WTK): lo carga alguien con acceso a Supabase.</li></ol><div style="margin-top:8px;font-size:11px;color:#9aa">¿Otro puesto de la misma marca, independiente (billeteras y portal propios)? Creá otra oficina igual y ponele la misma <b>marca</b> (paso opcional de arriba): se agrupan solos bajo la marca. Ya no hace falta SQL ni "split".</div></div></div>`;
-      if(typeof toast==="function") toast(aerr?"Oficina creada con avisos":"Oficina creada",aerr?"err":"okb");
+      const r=await supabaseClient.rpc("admin_general_crear_oficina_multipuesto",{p_session_token:tok,p_nombre:nombre,p_puestos:puestos});
+      if(r.error) throw r.error;
+      const d=r.data||{};
+      if(d.ok===false) throw new Error(d.error||"No se pudo crear la oficina");
+      const filas=(d.puestos||[]).map(function(p){
+        return `<div style="font-size:12px;margin:3px 0;color:#cbd5e1">✅ <b>Puesto ${p.puesto}</b> · ${esc(p.subagente)} · código <b>${esc(p.codigo)}</b> · <code>${esc(p.portal)}</code></div>`;
+      }).join("");
+      out.innerHTML=`<div class="item" style="display:block"><strong>✅ Oficina ${esc(d.oficina)} creada — ${(d.puestos||[]).length} puesto(s)</strong>${filas}
+        <div style="margin-top:12px;padding:12px;border:1px solid rgba(59,130,246,.4);border-radius:8px;background:rgba(59,130,246,.06)"><b style="font-size:13px">Para dejarla operativa, en cada puesto:</b><ol style="margin:8px 0 0;padding-left:18px;font-size:12px;line-height:1.7;color:#cbd5e1"><li><b>Billeteras:</b> abrí NODO en esa PC y <b>sincronizá desde el panel</b>. Cargá CBU/alias <b>después</b> del primer sync (si los cargás antes, se duplican).</li><li><b>Encargado / operadores:</b> en <b>Accesos al Admi</b>.</li><li><b>Proxy y agente:</b> ya quedaron cargados si los completaste acá.</li><li><b>Contactos:</b> si no usan Whaticket, cargá la base por <b>Importador → Conversor</b>.</li></ol></div></div>`;
+      if(typeof toast==="function") toast("Oficina creada","okb");
+      const _n=$id("ofi_oficina_id"); if(_n) _n.value="";
+      const cont=$id("ofi_puestos"); if(cont){ cont.innerHTML=""; ofiAgregarPuesto(); }
       try{ if(typeof fillPcSelects==="function") fillPcSelects(); }catch(_e){}
       try{ await oficinaListaCargar(); }catch(_e){}
     }catch(e){
