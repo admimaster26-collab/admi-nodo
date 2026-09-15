@@ -2005,6 +2005,7 @@ testResolverAlias = async function(){
         <div class="row" style="display:flex;gap:6px;align-items:center;margin:6px 0;flex-wrap:wrap"><span style="font-size:12px;color:#9aa">🌐</span><select id="ofi_pxen_${esc(g.pc)}" style="width:100px"><option value="0" ${pxOn?'':'selected'}>Proxy off</option><option value="1" ${pxOn?'selected':''}>Proxy on</option></select><input id="ofi_pxhost_${esc(g.pc)}" value="${pxHost}" autocomplete="off" placeholder="host" style="flex:1;min-width:110px"><input id="ofi_pxport_${esc(g.pc)}" value="${pxPort}" autocomplete="off" placeholder="puerto" style="width:75px"><select id="ofi_pxproto_${esc(g.pc)}" style="width:85px"><option value="http" ${pxProto==='socks5'?'':'selected'}>http</option><option value="socks5" ${pxProto==='socks5'?'selected':''}>socks5</option></select><input id="ofi_pxuser_${esc(g.pc)}" value="${pxUser}" autocomplete="off" placeholder="usuario" style="width:110px"><input id="ofi_pxpass_${esc(g.pc)}" type="password" autocomplete="new-password" placeholder="${_px?'clave guardada 🔒 (dejá vacío para no cambiar)':'clave 🔒'}" style="width:110px"><button class="blue small" onclick="oficinaGuardarProxy('${esc(g.pc)}')">Guardar proxy</button></div>
         <div style="margin:6px 0;font-size:12px">🎁 Promo primer ingreso: <b style="color:${promoOn?'#22c55e':'#fca5a5'}">${promoOn?'ACTIVADA':'desactivada'}</b> <button class="small" onclick="oficinaTogglePromo('${esc(g.pc)}',${promoOn?0:1})">${promoOn?'Desactivar':'Activar'}</button></div>
         <div class="row" style="display:flex;gap:6px;align-items:center;margin:6px 0;flex-wrap:wrap"><span style="font-size:12px;color:#9aa">🏢 Marca/grupo</span><input id="ofi_marca_${esc(g.pc)}" value="${esc(((window._gruposOfi||{})[g.pc]||{}).marca||'')}" placeholder="Marca (agrupa puestos)" style="flex:1;min-width:120px"><input id="ofi_plabel_${esc(g.pc)}" value="${esc(((window._gruposOfi||{})[g.pc]||{}).puesto_label||'')}" placeholder="Etiqueta (ej: Puesto 2)" style="width:140px"><button class="blue small" onclick="oficinaGuardarGrupo('${esc(g.pc)}')">Guardar marca</button><button class="small" onclick="oficinaQuitarGrupo('${esc(g.pc)}')">Quitar</button></div>
+        <div class="row" style="display:flex;gap:6px;align-items:center;margin:6px 0;flex-wrap:wrap"><span style="font-size:12px;color:#9aa">💵 Mínimos</span><input id="ofi_mincarga_${esc(g.pc)}" type="number" value="${(r&&r.min_carga!=null)?esc(r.min_carga):''}" placeholder="carga (def 1000)" style="width:140px"><input id="ofi_minretiro_${esc(g.pc)}" type="number" value="${(r&&r.min_retiro!=null)?esc(r.min_retiro):''}" placeholder="retiro (def 5000)" style="width:140px"><button class="blue small" onclick="oficinaGuardarMinimos('${esc(g.pc)}')">Guardar mínimos</button></div>
         <div style="margin:6px 0">Puestos de Chunior: ${chips||'<span style="color:#fca5a5">ninguno</span>'}</div>
         ${chipsCod?`<div style="margin:6px 0;font-size:12px;color:#9aa">Códigos (no son puestos): ${chipsCod}</div>`:""}
         <div class="row" style="display:flex;gap:6px"><input id="ofi_addp_${esc(g.pc)}" placeholder="Nuevo puesto de Chunior (sin 'EN USO')" style="flex:1"><button class="blue small" onclick="oficinaAgregarPuesto('${esc(g.pc)}','${esc(g.oficina_id)}')">+ Puesto</button></div>
@@ -2067,6 +2068,24 @@ testResolverAlias = async function(){
       const {error}=await supabaseClient.rpc("admin_oficina_set_grupo",{p_session_token:tok,p_pc_codigo:pc,p_marca:"",p_puesto_label:null,p_orden:null});
       if(error) throw error;
       if(typeof toast==="function") toast("Sacada del grupo","okb");
+      await oficinaListaCargar();
+    }catch(e){ if(typeof toast==="function") toast("Error: "+(e.message||e),"err"); }
+  };
+  window.oficinaGuardarMinimos=async function(pc){
+    // Mínimos de carga/retiro por oficina. Vacío = usar el default del portal (1000 / 5000).
+    const rawC=(($id("ofi_mincarga_"+pc)||{}).value||"").trim();
+    const rawR=(($id("ofi_minretiro_"+pc)||{}).value||"").trim();
+    const minC = rawC==="" ? null : Math.round(Number(rawC));
+    const minR = rawR==="" ? null : Math.round(Number(rawR));
+    if(rawC!=="" && !(minC>0)){ if(typeof toast==="function") toast("Mínimo de carga inválido","err"); return; }
+    if(rawR!=="" && !(minR>0)){ if(typeof toast==="function") toast("Mínimo de retiro inválido","err"); return; }
+    const tok=(typeof requireAdminToken==="function")?requireAdminToken():null;
+    try{
+      const {data,error}=await supabaseClient.rpc("admin_set_minimos",{p_session_token:tok,p_pc_codigo:pc,p_min_carga:minC,p_min_retiro:minR});
+      if(error) throw error;
+      if(data && data.ok===false) throw new Error(data.mensaje||data.error||"No se pudo guardar");
+      const n=(data&&data.rutas_actualizadas!=null)?data.rutas_actualizadas:0;
+      if(typeof toast==="function") toast("Mínimos guardados"+(n>1?(" ("+n+" puestos)"):""),"okb");
       await oficinaListaCargar();
     }catch(e){ if(typeof toast==="function") toast("Error: "+(e.message||e),"err"); }
   };
