@@ -793,7 +793,21 @@ startRealtime=function(){
   try{
     if(rtChannel){supabaseClient.removeChannel(rtChannel);rtChannel=null}
     if(rtTimer)clearInterval(rtTimer);
-    rtTimer=setInterval(()=>reloadAll(false),12000);
+    // Antes: todo cada 12 s, con la pestaña escondida o no (~300.000 consultas de cada tipo desde agosto).
+    // Ahora: cada 60 s y sólo con la pestaña a la vista; al volver a la pestaña, si pasó más de un
+    // minuto, se actualiza en el momento. "Actualizar todo" sigue trayendo todo cuando lo tocás.
+    window._admiUltimaRecarga=Date.now();
+    const recargarSiToca=()=>{
+      if(document.hidden)return;
+      if(Date.now()-(window._admiUltimaRecarga||0)<55000)return;
+      window._admiUltimaRecarga=Date.now();
+      reloadAll(false);
+    };
+    rtTimer=setInterval(recargarSiToca,60000);
+    if(!window._admiVisibilidadEnganchada){
+      window._admiVisibilidadEnganchada=true;
+      document.addEventListener('visibilitychange',recargarSiToca);
+    }
   }catch(e){console.warn(e)}
 };
 abrirLogsWorker=async function(jobId){
@@ -2559,9 +2573,12 @@ testResolverAlias = async function(){
   function engancharLogin(){
     var orig = window.reloadAll;
     if(typeof orig !== 'function' || orig.__tbHooked) return false;
+    var primera = true;
     var wrap = function(){
       var r; try{ r = orig.apply(this, arguments); }catch(e){ r = null; }
-      setTimeout(function(){ tableroCargar(); }, 120);
+      // La primera vez (al entrar) sí; después, sólo si el tablero está a la vista.
+      var s = document.getElementById('section-dashboard');
+      if(primera || (s && s.classList.contains('active'))){ primera = false; setTimeout(function(){ tableroCargar(); }, 120); }
       return r;
     };
     wrap.__tbHooked = true;
@@ -2573,6 +2590,10 @@ testResolverAlias = async function(){
     if(!engancharFechas()) setTimeout(engancharFechas, 1200);
     if(!engancharLogin()) setTimeout(engancharLogin, 1200);
     tableroCargar();
+    // Como ya no se recarga con cada vuelta general, al abrirlo se trae fresco.
+    document.addEventListener('click', function(e){
+      if(e.target && e.target.closest && e.target.closest('[data-section="dashboard"]')) setTimeout(function(){ tableroCargar(); }, 150);
+    });
     setInterval(function(){
       var s = document.getElementById('section-dashboard');
       if(s && s.classList.contains('active')) tableroCargar();   // solo si estás mirándolo
