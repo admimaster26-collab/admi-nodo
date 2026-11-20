@@ -4289,7 +4289,7 @@ async function buscarCrm(){
 
   var GRUPOS=[
     {id:'inicio', t:null, s:['inicio']},
-    {id:'op',  t:'📋 Operación',          s:['solicitudes','operacion-vivo','movimientos','billeteras']},
+    {id:'op',  t:'📋 Operación',          s:['solicitudes','operacion-vivo','movimientos','fuera-de-nodo','billeteras']},
     {id:'eq',  t:'👥 Equipo y jugadores', s:['crecimiento','rendimiento','crm','recuperacion','reconexion']},
     {id:'ctl', t:'🛰️ Control',            s:['monitoreo','dashboard','worker']},
     {id:'cfg', t:'⚙️ Configuración',      s:['altaofi','operadores','importador','portal-rutas','aliases','mapa','pcs','config','ajustes-admin']}
@@ -4303,6 +4303,7 @@ async function buscarCrm(){
     crecimiento:['Crecimiento y rendimiento','Bonos, jugadores nuevos, vínculos y cómo rinde cada operador.'],
     solicitudes:['Solicitudes','Todo lo que pidieron los jugadores desde el portal, de todas tus oficinas.'],
     movimientos:['Movimientos de caja','Plata movida a mano: transferencias, cambios de billetera, depósitos sin reclamar y propinas.'],
+    'fuera-de-nodo':['Fuera de NODO','Lo que se anotó directo en Chunior sin pasar por NODO: quién, cuánto y cuándo.'],
     billeteras:['Billeteras','Cuentas de cada oficina: estado, prioridad y saldo.'],
     crm:['CRM · Buscar jugador','Una persona en todas las oficinas a la vez: por usuario, teléfono o titular.'],
     recuperacion:['Recuperación y reconexión','Los que dejaron de operar, quién los trabaja y cuántos volvieron.'],
@@ -4494,6 +4495,171 @@ async function buscarCrm(){
   }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',function(){ setTimeout(arranque,1300); });
   else setTimeout(arranque,1300);
+})();
+</script>
+
+<script id="fueraDeNodoJs">
+/* NODO · ADMI — Solapa "Anotado fuera de NODO" (19/11/2026).
+   Lo que se anotó directo en Chunior y la pasada del cotejo copió al historial de NODO (origen CHUNIOR), más las
+   alertas de esa pasada. Solo lectura: una sola llamada a admin_od_fuera_de_nodo_v1. Las ALERTA no se suman. */
+(function(){
+  'use strict';
+  var SEC='fuera-de-nodo', RPC='admin_od_fuera_de_nodo_v1', LIMITE_DETALLE=200;
+  var NOMBRES={ GASTO:'Gasto de oficina', MOV_BILLETERA:'Movimiento entre billeteras', FINANCIERA:'Transferencia a financiera',
+    RECARGA_FICHAS:'Recarga administrativa', DEPOSITO_SR:'Depósito sin reclamar', PROPINA:'Propina', CARGA:'Carga de fichas',
+    RETIRO:'Retiro de fichas', CAMBIO_BILLETERA:'Cambio de billetera', MOVER_RETIRO:'Mover retiro', FALTANTE:'Faltante' };
+  var datos=null, orden={col:'created_at',asc:false}, cargando=false;
+
+  function $i(id){ return document.getElementById(id); }
+  function esc(v){ return String(v==null?'':v).replace(/[&<>'"]/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]; }); }
+  function plata(v){ return Number(v||0).toLocaleString('es-AR',{style:'currency',currency:'ARS',maximumFractionDigits:0}); }
+  function hora(d){ var x=new Date(d); if(isNaN(x)) return '—';
+    return x.toLocaleString('es-AR',{timeZone:'America/Argentina/Buenos_Aires',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}); }
+  function nombreTipo(t){ return NOMBRES[t]||t||'—'; }
+  function hoyAR(){ return new Date().toLocaleDateString('en-CA',{timeZone:'America/Argentina/Buenos_Aires'}); }
+  function haceDias(n){ var d=new Date(); d.setDate(d.getDate()-n); return d.toLocaleDateString('en-CA',{timeZone:'America/Argentina/Buenos_Aires'}); }
+  function token(){ return (typeof requireAdminToken==='function') ? requireAdminToken() : ''; }
+  function pcElegida(){ try{ return (typeof pcSeleccionada==='function' ? pcSeleccionada() : '')||''; }catch(_e){ return ''; } }
+
+  function asegurar(){
+    if($i('section-'+SEC)) return;
+    var nav=document.querySelector('#appView .nav')||document.querySelector('.nav');
+    if(nav && !document.querySelector('[data-section="'+SEC+'"]')){
+      var b='<button class="navBtn" data-section="'+SEC+'" onclick="showSection(\''+SEC+'\')">🔎 Fuera de NODO</button>';
+      var ref=nav.querySelector('[data-section="movimientos"]');
+      if(ref) ref.insertAdjacentHTML('afterend',b); else nav.insertAdjacentHTML('beforeend',b);
+    }
+    var otra=document.getElementById('section-movimientos');
+    var cont=otra&&otra.parentNode;
+    if(!cont) return;
+    cont.insertAdjacentHTML('beforeend',
+'<section id="section-'+SEC+'" class="section">'+
+ '<div class="v21-hero"><div><div class="v21-eyebrow">NODO ADMIN · CONTROL</div><h2>Anotado fuera de NODO</h2>'+
+ '<p>Lo que se anotó directo en Chunior sin pasar por NODO: gastos, descargas, movimientos entre billeteras, financieras y cargas. Cada fila lleva quién lo anotó y su número de Chunior. Solo lectura.</p></div></div>'+
+ '<div class="card" style="margin-bottom:14px"><div class="card-b" style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end">'+
+   '<label style="display:flex;flex-direction:column;gap:4px"><span class="small">Desde</span><input type="date" id="fnDesde"></label>'+
+   '<label style="display:flex;flex-direction:column;gap:4px"><span class="small">Hasta</span><input type="date" id="fnHasta"></label>'+
+   '<label style="display:flex;flex-direction:column;gap:4px"><span class="small">Tipo</span><select id="fnTipo"><option value="">Todos</option></select></label>'+
+   '<label style="display:flex;flex-direction:column;gap:4px"><span class="small">Quién lo anotó</span><select id="fnOperador"><option value="">Todos</option></select></label>'+
+   '<label style="display:flex;flex-direction:column;gap:4px"><span class="small">Buscar (billetera, nota, N°)</span><input type="text" id="fnTexto" placeholder="texto libre"></label>'+
+   '<label style="display:flex;flex-direction:column;gap:4px"><span class="small">Monto desde</span><input type="number" id="fnMontoMin" min="0" placeholder="0" style="width:110px"></label>'+
+   '<button class="violet" id="fnBuscar">Buscar</button>'+
+   '<span style="display:flex;gap:6px"><button class="small" data-fn-rango="0">Hoy</button><button class="small" data-fn-rango="6">7 días</button><button class="small" data-fn-rango="29">30 días</button></span>'+
+   '<button class="small cyan" id="fnCsv">Bajar CSV</button>'+
+ '</div></div>'+
+ '<div id="fnKpis" class="grid2" style="margin-bottom:14px"></div>'+
+ '<div id="fnAlertas"></div>'+
+ '<div class="grid2" style="margin-bottom:14px">'+
+   '<div class="card"><div class="card-h"><h3>Por tipo</h3><span class="small">tocá una fila para filtrar</span></div><div class="card-b" style="overflow-x:auto"><table class="tbl"><thead><tr><th>Tipo</th><th style="text-align:right">Cantidad</th><th style="text-align:right">Monto</th></tr></thead><tbody id="fnPorTipo"></tbody></table></div></div>'+
+   '<div class="card"><div class="card-h"><h3>Quién lo anotó</h3><span class="small">tocá una fila para filtrar</span></div><div class="card-b" style="overflow-x:auto"><table class="tbl"><thead><tr><th>Oficina</th><th>Operador de Chunior</th><th style="text-align:right">Cant.</th><th style="text-align:right">Monto</th></tr></thead><tbody id="fnPorOperador"></tbody></table></div></div>'+
+ '</div>'+
+ '<div class="card"><div class="card-h"><h3>Movimientos</h3><span class="small" id="fnConteo"></span></div><div class="card-b" style="overflow-x:auto"><table class="tbl"><thead><tr>'+
+   '<th data-fn-ord="created_at" style="cursor:pointer">Fecha ↕</th><th>Oficina</th><th data-fn-ord="tipo" style="cursor:pointer">Tipo ↕</th><th data-fn-ord="monto" style="cursor:pointer;text-align:right">Monto ↕</th><th>Billetera</th><th>Anotó</th><th>N° Chunior</th><th>Nota</th>'+
+ '</tr></thead><tbody id="fnBody"><tr><td colspan="8" class="small">Apretá Buscar.</td></tr></tbody></table></div></div>'+
+'</section>');
+    var d=$i('fnDesde'), h=$i('fnHasta'); if(d&&!d.value) d.value=haceDias(6); if(h&&!h.value) h.value=hoyAR();
+    $i('fnBuscar').onclick=cargar;
+    $i('fnCsv').onclick=bajarCsv;
+    ['fnTipo','fnOperador','fnMontoMin'].forEach(function(id){ $i(id).onchange=pintar; });
+    $i('fnTexto').oninput=function(){ clearTimeout(window.__fnT); window.__fnT=setTimeout(pintar,200); };
+    document.querySelectorAll('[data-fn-rango]').forEach(function(b){ b.onclick=function(){
+      $i('fnDesde').value=haceDias(Number(b.getAttribute('data-fn-rango'))); $i('fnHasta').value=hoyAR(); cargar(); }; });
+    document.querySelectorAll('[data-fn-ord]').forEach(function(th){ th.onclick=function(){
+      var c=th.getAttribute('data-fn-ord'); orden=(orden.col===c)?{col:c,asc:!orden.asc}:{col:c,asc:false}; pintar(); }; });
+  }
+
+  async function cargar(){
+    if(cargando) return; cargando=true;
+    var body=$i('fnBody'); if(body) body.innerHTML='<tr><td colspan="8" class="small">Buscando…</td></tr>';
+    try{
+      var r=await supabaseClient.rpc(RPC,{p_session_token:token(),p_desde:$i('fnDesde').value||null,p_hasta:$i('fnHasta').value||null});
+      if(r.error) throw r.error;
+      var d=Array.isArray(r.data)?r.data[0]:r.data;
+      if(!d||d.ok===false) throw new Error((d&&(d.error||d.message))||'Sin permiso para ver esto.');
+      datos=d; llenarSelects(); pintar();
+    }catch(e){
+      if(body) body.innerHTML='<tr><td colspan="8" class="small">No se pudo traer: '+esc(e.message||e)+'</td></tr>';
+    }finally{ cargando=false; }
+  }
+
+  function llenarSelects(){
+    var tipos={}, ops={};
+    (datos.resumen||[]).forEach(function(r){ tipos[r.tipo]=1; });
+    (datos.operadores||[]).forEach(function(r){ ops[r.operador]=1; });
+    function llenar(id,vals,fmt){ var s=$i(id), v=s.value; s.innerHTML='<option value="">Todos</option>'+Object.keys(vals).sort().map(function(k){ return '<option value="'+esc(k)+'">'+esc(fmt?fmt(k):k)+'</option>'; }).join(''); s.value=v; }
+    llenar('fnTipo',tipos,nombreTipo); llenar('fnOperador',ops);
+  }
+
+  function filtrosActivos(){
+    return { pc:pcElegida().toUpperCase(), tipo:$i('fnTipo').value, op:$i('fnOperador').value,
+      txt:($i('fnTexto').value||'').trim().toLowerCase(), min:Number($i('fnMontoMin').value||0) };
+  }
+  function pasa(f,r){
+    if(f.pc && String(r.pc||'').toUpperCase()!==f.pc) return false;
+    if(f.tipo && r.tipo!==f.tipo) return false;
+    if(f.op && r.operador!==f.op) return false;
+    if(f.min && Math.abs(Number(r.monto||0))<f.min) return false;
+    if(f.txt && ((r.billetera_nombre||'')+' '+(r.notas||'')+' '+(r.chunior_movimiento_id||'')+' '+(r.usuario||'')).toLowerCase().indexOf(f.txt)<0) return false;
+    return true;
+  }
+
+  function pintar(){
+    if(!datos) return;
+    var f=filtrosActivos();
+    var det=(datos.detalle||[]).filter(function(r){ return pasa(f,r); });
+    var col=orden.col, sg=orden.asc?1:-1;
+    det.sort(function(a,b){ var x=a[col], y=b[col];
+      if(col==='monto'){ x=Math.abs(Number(x||0)); y=Math.abs(Number(y||0)); } else if(col==='created_at'){ x=Date.parse(x)||0; y=Date.parse(y)||0; } else { x=String(x||''); y=String(y||''); }
+      return x<y?-sg:x>y?sg:0; });
+
+    // Totales: salen del resumen (no del detalle, que está cortado en 200) y respetan oficina / tipo / operador.
+    var res=(datos.resumen||[]).filter(function(r){ return (!f.pc||String(r.pc).toUpperCase()===f.pc) && (!f.tipo||r.tipo===f.tipo); });
+    var ops=(datos.operadores||[]).filter(function(r){ return (!f.pc||String(r.pc).toUpperCase()===f.pc) && (!f.op||r.operador===f.op); });
+    var filas=res.reduce(function(a,r){ return a+Number(r.filas||0); },0);
+    var monto=res.reduce(function(a,r){ return a+Number(r.monto||0); },0);
+    var alertas=(datos.alertas||[]).filter(function(r){ return !f.pc||String(r.pc).toUpperCase()===f.pc; });
+
+    $i('fnKpis').innerHTML=
+      kpi('Movimientos fuera de NODO',filas,'en el período')+kpi('Monto total',plata(monto),'sin contar alertas')+
+      kpi('Quién anota',ops.length,'operadores de Chunior')+kpi('Alertas',alertas.length,alertas.length?'revisar abajo':'sin alertas');
+
+    $i('fnAlertas').innerHTML=alertas.length ? ('<div class="card" style="margin-bottom:14px;border:1px solid #7f1d1d"><div class="card-h"><h3>⚠ Alertas de la revisión (' + alertas.length + ')</h3><span class="small">anotado en Chunior pero sin confirmar. No suman en los totales.</span></div><div class="card-b" style="overflow-x:auto"><table class="tbl"><thead><tr><th>Fecha</th><th>Oficina</th><th>Anotó</th><th style="text-align:right">Monto</th><th>Billetera</th><th>N°</th><th>Qué pasó</th></tr></thead><tbody>'+
+      alertas.map(function(a){ return '<tr><td>'+hora(a.created_at)+'</td><td>'+esc(a.pc)+'</td><td>'+esc(a.operador)+'</td><td style="text-align:right">'+plata(a.monto)+'</td><td>'+esc(a.billetera_nombre||'—')+'</td><td>'+esc(a.chunior_movimiento_id||'—')+'</td><td class="small">'+esc(a.notas)+'</td></tr>'; }).join('')+'</tbody></table></div></div>') : '';
+
+    $i('fnPorTipo').innerHTML=res.length?res.map(function(r){ return '<tr style="cursor:pointer" data-fn-t="'+esc(r.tipo)+'"><td>'+esc(nombreTipo(r.tipo))+(f.pc?'':' <span class="small">· '+esc(r.pc)+'</span>')+'</td><td style="text-align:right">'+r.filas+'</td><td style="text-align:right">'+plata(r.monto)+'</td></tr>'; }).join(''):'<tr><td colspan="3" class="small">Sin movimientos fuera de NODO en el período.</td></tr>';
+    $i('fnPorOperador').innerHTML=ops.length?ops.map(function(r){ return '<tr style="cursor:pointer" data-fn-o="'+esc(r.operador)+'"><td>'+esc(r.pc)+'</td><td>'+esc(r.operador)+'</td><td style="text-align:right">'+r.filas+'</td><td style="text-align:right">'+plata(r.monto)+'</td></tr>'; }).join(''):'<tr><td colspan="4" class="small">Nadie anotó por fuera en el período.</td></tr>';
+    document.querySelectorAll('[data-fn-t]').forEach(function(tr){ tr.onclick=function(){ $i('fnTipo').value=tr.getAttribute('data-fn-t'); pintar(); }; });
+    document.querySelectorAll('[data-fn-o]').forEach(function(tr){ tr.onclick=function(){ $i('fnOperador').value=tr.getAttribute('data-fn-o'); pintar(); }; });
+
+    $i('fnConteo').textContent=det.length+' de '+(datos.detalle||[]).length+(((datos.detalle||[]).length>=LIMITE_DETALLE)?' (se muestran los últimos '+LIMITE_DETALLE+'; los totales de arriba incluyen todos)':'');
+    $i('fnBody').innerHTML=det.length?det.map(function(r){
+      var nota=String(r.notas||'').replace(/^Anotado directo en Chunior por [^·]*· ?/,'');
+      return '<tr><td>'+hora(r.created_at)+'</td><td>'+esc(r.pc)+'</td><td>'+esc(nombreTipo(r.tipo))+'</td><td style="text-align:right">'+plata(r.monto)+'</td><td>'+esc(r.billetera_nombre||'—')+'</td><td>'+esc(r.operador)+'</td><td>'+esc(r.chunior_movimiento_id||'—')+'</td><td class="small">'+esc(nota)+'</td></tr>'; }).join(''):
+      '<tr><td colspan="8" class="small">Sin movimientos para el filtro actual.</td></tr>';
+  }
+  function kpi(t,v,s){ return '<div class="card"><div class="card-b"><div class="small">'+esc(t)+'</div><div style="font-size:24px;font-weight:800;margin:4px 0">'+esc(v)+'</div><div class="small">'+esc(s)+'</div></div></div>'; }
+
+  function bajarCsv(){
+    if(!datos) return;
+    var f=filtrosActivos(), det=(datos.detalle||[]).filter(function(r){ return pasa(f,r); });
+    var q=function(v){ return '"'+String(v==null?'':v).replace(/"/g,'""')+'"'; };
+    var lineas=[['Fecha','Oficina','Tipo','Monto','Billetera','Anotó','N° Chunior','Nota'].map(q).join(',')].concat(det.map(function(r){
+      return [hora(r.created_at),r.pc,nombreTipo(r.tipo),r.monto,r.billetera_nombre,r.operador,r.chunior_movimiento_id,r.notas].map(q).join(','); }));
+    var blob=new Blob(['﻿'+lineas.join('\r\n')],{type:'text/csv;charset=utf-8'});
+    var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='fuera-de-nodo-'+hoyAR()+'.csv';
+    document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },500);
+  }
+
+  function arranque(){
+    asegurar();
+    var base=window.showSection;
+    if(typeof base==='function' && !base.__fn){
+      var nuevo=function(name){ var r=base.apply(this,arguments); if(name===SEC){ asegurar(); if(!datos) cargar(); } return r; };
+      nuevo.__fn=true; window.showSection=nuevo;
+    }
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',function(){ setTimeout(arranque,1600); });
+  else setTimeout(arranque,1600);
 })();
 </script>
 
