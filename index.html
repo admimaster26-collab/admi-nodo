@@ -4291,7 +4291,7 @@ async function buscarCrm(){
     {id:'inicio', t:null, s:['inicio']},
     {id:'op',  t:'📋 Operación',          s:['solicitudes','operacion-vivo','movimientos','fuera-de-nodo','billeteras']},
     {id:'eq',  t:'👥 Equipo y jugadores', s:['crecimiento','rendimiento','crm','recuperacion','reconexion']},
-    {id:'ctl', t:'🛰️ Control',            s:['monitoreo','dashboard','worker']},
+    {id:'ctl', t:'🛰️ Control',            s:['monitoreo','dashboard','worker','mora']},
     {id:'cfg', t:'⚙️ Configuración',      s:['altaofi','operadores','importador','portal-rutas','aliases','mapa','pcs','config','ajustes-admin']}
   ];
   var SOLO_ADMIN=['config','ajustes-admin'];
@@ -4303,6 +4303,7 @@ async function buscarCrm(){
     crecimiento:['Crecimiento y rendimiento','Bonos, jugadores nuevos, vínculos y cómo rinde cada operador.'],
     solicitudes:['Solicitudes','Todo lo que pidieron los jugadores desde el portal, de todas tus oficinas.'],
     movimientos:['Movimientos de caja','Plata movida a mano: transferencias, cambios de billetera, depósitos sin reclamar y propinas.'],
+    mora:['Mora · operador autónomo','Prender y apagar a Mora por oficina, ver si está viva y resolver las cargas sin confirmar.'],
     'fuera-de-nodo':['Fuera de NODO','Lo que se anotó directo en Chunior sin pasar por NODO: quién, cuánto y cuándo.'],
     billeteras:['Billeteras','Cuentas de cada oficina: estado, prioridad y saldo.'],
     crm:['CRM · Buscar jugador','Una persona en todas las oficinas a la vez: por usuario, teléfono o titular.'],
@@ -4663,4 +4664,161 @@ async function buscarCrm(){
 })();
 </script>
 
+<script id="moraPanelJs">
+/* NODO · ADMI — Panel de control de Mora (25/11/2026).
+   Mora es el operador autónomo (repo nodo-lite). Acá se la prende y apaga por oficina, se ve si está viva (latido de
+   Mora y del ejecutor dentro de NODO), lo que hizo hoy y las cargas SIN CONFIRMAR, que solo resuelve una persona.
+   Necesita el SQL nodo-lite/sql/mora_acreditacion_v2_20261125.sql aplicado: si falta, la sección lo dice y no hace nada.
+   RPC: admin_mora_oficinas, admin_mora_set, admin_mora_ordenes, admin_mora_resolver (todas con la sesión del Admi). */
+(function(){
+  'use strict';
+  var SEC='mora', REFRESCO_MS=30000, LATIDO_VIEJO_MIN=3;
+  var oficinas=null, ordenes={}, elegida='', cargando=false, faltaSql=false;
+  var ESTADOS={ ACTIVA:['Prendida','ok'], PAUSADA:['En pausa','warn'], APAGADA:['Apagada','off'] };
+  var ORDEN={ PENDIENTE:['Esperando a NODO','warn'], TOMADA:['Cargando','info'], HECHA:['Acreditada','ok'], FALLIDA:['No se cargó','off'],
+    CANCELADA:['Cancelada','off'], INCIERTA:['SIN CONFIRMAR','off'] };
+
+  function $i(id){ return document.getElementById(id); }
+  function esc(v){ return String(v==null?'':v).replace(/[&<>'"]/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]; }); }
+  function plata(v){ return Number(v||0).toLocaleString('es-AR',{style:'currency',currency:'ARS',maximumFractionDigits:0}); }
+  function hora(d){ var x=new Date(d); if(!d||isNaN(x)) return '—';
+    return x.toLocaleString('es-AR',{timeZone:'America/Argentina/Buenos_Aires',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}); }
+  function etiqueta(t,clase){ return '<span class="pill '+esc(clase)+'">'+esc(t)+'</span>'; }
+  function token(){ return (typeof requireAdminToken==='function') ? requireAdminToken() : ''; }
+  function nombrePc(c){ try{ return typeof pcLabel==='function' ? pcLabel(c) : c; }catch(_e){ return c; } }
+  function aviso(t,k){ try{ if(typeof toast==='function') return toast(t,k||'okb'); }catch(_e){} alert(t); }
+  function hace(d){
+    if(!d) return { txt:'nunca', viejo:true };
+    var min=Math.floor((Date.now()-Date.parse(d))/60000);
+    return { txt: min<1?'recién':min<60?('hace '+min+' min'):min<1440?('hace '+Math.floor(min/60)+' h'):hora(d), viejo: min>=LATIDO_VIEJO_MIN };
+  }
+  function esFaltaSql(e){ var m=String((e&&(e.message||e.details||e.hint))||e||''); return /admin_mora_|function .* does not exist|Could not find the function|PGRST202/i.test(m); }
+
+  function asegurar(){
+    if($i('section-'+SEC)) return;
+    var nav=document.querySelector('#appView .nav')||document.querySelector('.nav');
+    if(nav && !document.querySelector('[data-section="'+SEC+'"]')){
+      var b='<button class="navBtn" data-section="'+SEC+'" onclick="showSection(\''+SEC+'\')">🤖 Mora</button>';
+      var ref=nav.querySelector('[data-section="worker"]');
+      if(ref) ref.insertAdjacentHTML('afterend',b); else nav.insertAdjacentHTML('beforeend',b);
+    }
+    var otra=document.getElementById('section-worker')||document.getElementById('section-movimientos');
+    var cont=otra&&otra.parentNode; if(!cont) return;
+    cont.insertAdjacentHTML('beforeend',
+'<section id="section-'+SEC+'" class="section">'+
+ '<div class="v21-hero"><div><div class="v21-eyebrow">NODO ADMIN · CONTROL</div><h2>Mora · operador autónomo</h2>'+
+ '<p>Mora acredita sola las cargas de una oficina cuando no hay operador: verifica el pago en Mercado Pago (solo mira, nunca mueve plata) y carga las fichas por NODO, igual que el botón Aprobar. Se prende y se apaga acá, por oficina. Si una carga queda sin confirmar, Mora se pausa sola y la resolvés vos abajo.</p></div></div>'+
+ '<div id="moraFaltaSql"></div>'+
+ '<div id="moraOficinas" class="grid2" style="margin-bottom:14px"></div>'+
+ '<div id="moraInciertas"></div>'+
+ '<div class="card"><div class="card-h"><h3>Lo que hizo hoy <span id="moraOfiTitulo"></span></h3><span class="small" id="moraConteo"></span></div>'+
+ '<div class="card-b" style="overflow-x:auto"><table class="tbl"><thead><tr><th>Hora</th><th>Solicitud</th><th style="text-align:right">Monto</th><th>Titular en MP</th><th>Pago</th><th>Estado</th><th>Detalle</th></tr></thead>'+
+ '<tbody id="moraBody"><tr><td colspan="7" class="small">Elegí una oficina arriba.</td></tr></tbody></table></div></div>'+
+'</section>');
+  }
+
+  async function rpc(nombre, args){
+    var r=await supabaseClient.rpc(nombre, Object.assign({p_session_token:token()}, args||{}));
+    if(r.error) throw r.error;
+    var d=Array.isArray(r.data)?r.data[0]:r.data;
+    if(!d||d.ok===false) throw new Error((d&&(d.motivo||d.error||d.message))||'Sin permiso para ver esto.');
+    return d;
+  }
+
+  async function cargar(){
+    if(cargando) return; cargando=true;
+    try{
+      var d=await rpc('admin_mora_oficinas');
+      faltaSql=false; oficinas=d.oficinas||[];
+      if(!elegida || !oficinas.some(function(o){ return o.pc_codigo===elegida; })) elegida=(oficinas.find(function(o){ return o.estado!=='APAGADA'; })||oficinas[0]||{}).pc_codigo||'';
+      // Las órdenes de la oficina elegida, y las de cualquier oficina con cargas sin confirmar (para el cartel de arriba).
+      var aTraer=oficinas.filter(function(o){ return o.pc_codigo===elegida || Number((o.hoy||{}).inciertas||0)>0; }).map(function(o){ return o.pc_codigo; });
+      await Promise.all(aTraer.map(cargarOrdenes));
+      pintar();
+    }catch(e){
+      if(esFaltaSql(e)){ faltaSql=true; oficinas=[]; pintar(); }
+      else { var c=$i('moraOficinas'); if(c) c.innerHTML='<div class="card"><div class="card-b small">No se pudo traer el estado de Mora: '+esc(e.message||e)+'</div></div>'; }
+    }finally{ cargando=false; }
+  }
+  async function cargarOrdenes(pc){
+    try{ ordenes[pc]=(await rpc('admin_mora_ordenes',{p_pc:pc,p_desde:null})).ordenes||[]; }catch(_e){ ordenes[pc]=ordenes[pc]||[]; }
+  }
+
+  function pintar(){
+    $i('moraFaltaSql').innerHTML=faltaSql
+      ? '<div class="card" style="margin-bottom:14px;border:1px solid #92400e"><div class="card-b"><b>Falta instalar Mora en la base.</b> Hay que aplicar en Supabase el archivo <code>nodo-lite/sql/mora_acreditacion_v2_20261125.sql</code>. Hasta entonces, esta sección no puede prender ni mostrar nada.</div></div>' : '';
+    var lista=oficinas||[];
+    $i('moraOficinas').innerHTML=lista.length ? lista.map(tarjeta).join('') : (faltaSql?'':'<div class="card"><div class="card-b small">No hay oficinas de Mora para tu acceso.</div></div>');
+    lista.forEach(function(o){
+      var b=document.querySelector('[data-mora-set="'+o.pc_codigo+'"]'); if(b) b.onclick=function(){ cambiar(o); };
+      var v=document.querySelector('[data-mora-ver="'+o.pc_codigo+'"]'); if(v) v.onclick=async function(){ elegida=o.pc_codigo; await cargarOrdenes(elegida); pintar(); };
+    });
+    pintarInciertas(); pintarOrdenes();
+  }
+  function tarjeta(o){
+    var e=ESTADOS[o.estado]||[o.estado,'warn'], h=o.hoy||{}, lm=hace(o.latido_mora), ln=hace(o.latido_nodo), activa=o.estado==='ACTIVA';
+    var alerta = activa && (lm.viejo||ln.viejo)
+      ? '<div class="small" style="color:#f87171;margin-top:6px">⚠ '+(lm.viejo?'Mora no da señales':'')+(lm.viejo&&ln.viejo?' y ':'')+(ln.viejo?'el ejecutor de NODO no da señales':'')+': puede estar cerrado en la PC de la oficina.</div>' : '';
+    var inciertas=Number(h.inciertas||0);
+    return '<div class="card" style="'+(o.pc_codigo===elegida?'outline:2px solid #7c3aed;':'')+'"><div class="card-h"><h3>'+esc(nombrePc(o.pc_codigo))+'</h3>'+etiqueta(e[0],e[1])+'</div><div class="card-b">'+
+      (o.motivo?'<div class="small" style="margin-bottom:6px">'+esc(o.motivo)+(o.cambiado_por?' · '+esc(o.cambiado_por):'')+' · '+esc(hora(o.cambiado_at))+'</div>':'')+
+      '<div class="small">Mora: <b>'+esc(lm.txt)+'</b> · NODO: <b>'+esc(ln.txt)+'</b></div>'+alerta+
+      '<div style="display:flex;gap:14px;flex-wrap:wrap;margin:10px 0">'+
+        dato('Acreditadas hoy',Number(h.hechas||0))+dato('Monto',plata(h.monto_hecho))+dato('En curso',Number(h.pendientes||0))+
+        dato('No se cargaron',Number(h.fallidas||0))+(inciertas?dato('SIN CONFIRMAR',inciertas,'#f87171'):'')+'</div>'+
+      '<div class="rowActions"><button class="small '+(activa||o.estado==='PAUSADA'?'warning':'primary')+'" data-mora-set="'+esc(o.pc_codigo)+'">'+(activa?'Apagar':o.estado==='PAUSADA'?'Volver a prender':'Prender')+'</button>'+
+        ' <button class="small blue" data-mora-ver="'+esc(o.pc_codigo)+'">Ver lo de hoy</button></div>'+
+    '</div></div>';
+  }
+  function dato(t,v,color){ return '<div><div class="small">'+esc(t)+'</div><div style="font-size:20px;font-weight:800'+(color?';color:'+color:'')+'">'+esc(v)+'</div></div>'; }
+
+  async function cambiar(o){
+    var prender=o.estado!=='ACTIVA';
+    if(prender){
+      if(Number((o.hoy||{}).inciertas||0)>0) return aviso('Antes de prender, resolvé las cargas SIN CONFIRMAR de '+nombrePc(o.pc_codigo)+'.','err');
+      if(!confirm('¿Prender Mora en '+nombrePc(o.pc_codigo)+'?\n\nDesde ahora Mora acredita sola las cargas verificadas de esa oficina.\nVa a usar la sesión de Agentes de la PC de la oficina: si hay un operador trabajando en la mirror, queda afuera.\nPrendela solo si no hay operador.')) return;
+    } else if(!confirm('¿Apagar Mora en '+nombrePc(o.pc_codigo)+'?\n\nTermina la carga que tenga en curso y no toma ninguna más.')) return;
+    try{ await rpc('admin_mora_set',{p_pc:o.pc_codigo,p_activar:prender}); aviso(prender?'Mora prendida en '+nombrePc(o.pc_codigo):'Mora apagada en '+nombrePc(o.pc_codigo)); }
+    catch(e){ aviso('No se pudo: '+(e.message||e),'err'); }
+    await cargar();
+  }
+
+  function pintarInciertas(){
+    var todas=[]; Object.keys(ordenes).forEach(function(pc){ (ordenes[pc]||[]).forEach(function(r){ if(r.estado==='INCIERTA') todas.push(r); }); });
+    $i('moraInciertas').innerHTML=todas.length ? '<div class="card" style="margin-bottom:14px;border:1px solid #7f1d1d"><div class="card-h"><h3>⚠ Cargas sin confirmar ('+todas.length+')</h3><span class="small">Mirá en Agentes si las fichas están cargadas y elegí. Mientras haya alguna, Mora queda en pausa en esa oficina.</span></div><div class="card-b" style="overflow-x:auto"><table class="tbl"><thead><tr><th>Oficina</th><th>Hora</th><th>Solicitud</th><th style="text-align:right">Monto</th><th>Titular en MP</th><th>Qué pasó</th><th></th></tr></thead><tbody>'+
+      todas.map(function(r){ return '<tr><td>'+esc(r.pc_codigo)+'</td><td>'+esc(hora(r.tomada_at||r.created_at))+'</td><td>#'+esc(r.solicitud_id)+'</td><td style="text-align:right">'+plata(r.monto)+'</td><td>'+esc(r.titular_mp||'—')+'</td><td class="small">'+esc(r.detalle||'')+'</td>'+
+        '<td><div class="rowActions"><button class="small primary" data-mora-res="'+esc(r.id)+'" data-cargada="1">Las fichas están</button> <button class="small warning" data-mora-res="'+esc(r.id)+'" data-cargada="0">No se cargó: liberar</button></div></td></tr>'; }).join('')+
+      '</tbody></table></div></div>' : '';
+    document.querySelectorAll('[data-mora-res]').forEach(function(b){ b.onclick=function(){ resolver(b.getAttribute('data-mora-res'), b.getAttribute('data-cargada')==='1'); }; });
+  }
+  async function resolver(id, cargada){
+    if(!confirm(cargada ? '¿Confirmás que las fichas de esta carga YA ESTÁN en Agentes?\nQueda como acreditada por Mora.' : '¿Confirmás que esta carga NO se hizo?\nLa solicitud vuelve a quedar libre para que la cargue una persona.')) return;
+    try{ await rpc('admin_mora_resolver',{p_orden_id:Number(id),p_cargada:!!cargada}); aviso('Listo. Para que Mora siga, volvé a prenderla en esa oficina.'); }
+    catch(e){ aviso('No se pudo: '+(e.message||e),'err'); }
+    await cargar();
+  }
+
+  function pintarOrdenes(){
+    var lista=(elegida&&ordenes[elegida])||[];
+    $i('moraOfiTitulo').textContent=elegida?('· '+nombrePc(elegida)):'';
+    $i('moraConteo').textContent=elegida?(lista.length+' órdenes'):'';
+    $i('moraBody').innerHTML=!elegida ? '<tr><td colspan="7" class="small">Elegí una oficina arriba.</td></tr>'
+      : lista.length ? lista.map(function(r){ var e=ORDEN[r.estado]||[r.estado,'warn'];
+          return '<tr><td>'+esc(hora(r.created_at))+'</td><td>#'+esc(r.solicitud_id)+'</td><td style="text-align:right">'+plata(r.monto)+'</td><td>'+esc(r.titular_mp||'—')+'</td><td>'+esc(hora(r.pago_at))+'</td><td>'+etiqueta(e[0],e[1])+'</td><td class="small">'+esc(r.detalle||'')+(r.resuelta_por?' · '+esc(r.resuelta_por):'')+'</td></tr>'; }).join('')
+      : '<tr><td colspan="7" class="small">Hoy Mora no hizo nada en esta oficina.</td></tr>';
+  }
+
+  function arranque(){
+    asegurar();
+    var base=window.showSection;
+    if(typeof base==='function' && !base.__mora){
+      var nuevo=function(name){ var r=base.apply(this,arguments); if(name===SEC){ asegurar(); cargar(); } return r; };
+      nuevo.__mora=true; window.showSection=nuevo;
+    }
+    setInterval(function(){ var s=$i('section-'+SEC); if(s && s.classList.contains('active') && !document.hidden) cargar(); }, REFRESCO_MS);
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',function(){ setTimeout(arranque,1700); });
+  else setTimeout(arranque,1700);
+})();
+</script>
 </body></html>
